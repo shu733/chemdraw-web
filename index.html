@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChemDraw Web</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: sans-serif; background: #1a1a2e; color: #eee; height: 100vh; display: flex; flex-direction: column; }
+
+    #toolbar {
+      background: #16213e;
+      border-bottom: 1px solid #0f3460;
+      padding: 8px 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tool-group {
+      display: flex;
+      gap: 4px;
+      border-right: 1px solid #0f3460;
+      padding-right: 8px;
+    }
+
+    .tool-btn {
+      background: #0f3460;
+      color: #eee;
+      border: 1px solid #1a1a6e;
+      border-radius: 4px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .tool-btn:hover { background: #1a5276; }
+    .tool-btn.active { background: #2874a6; border-color: #5dade2; }
+
+    #atom-select {
+      background: #0f3460;
+      color: #eee;
+      border: 1px solid #1a1a6e;
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 13px;
+    }
+
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 180px;
+      background: #16213e;
+      border-right: 1px solid #0f3460;
+      padding: 10px;
+      overflow-y: auto;
+    }
+
+    #sidebar h3 { font-size: 12px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
+
+    .element-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .elem-btn {
+      background: #0f3460;
+      border: 1px solid #1a1a6e;
+      color: #eee;
+      border-radius: 4px;
+      padding: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .elem-btn:hover { background: #1a5276; }
+    .elem-btn.active { background: #117a65; border-color: #1abc9c; }
+
+    #bond-types { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+
+    .bond-btn {
+      background: #0f3460;
+      border: 1px solid #1a1a6e;
+      color: #eee;
+      border-radius: 4px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.15s;
+    }
+    .bond-btn:hover { background: #1a5276; }
+    .bond-btn.active { background: #6c3483; border-color: #a569bd; }
+
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      background: #f5f5f0;
+      cursor: crosshair;
+    }
+
+    #info-bar {
+      background: #16213e;
+      border-top: 1px solid #0f3460;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #aaa;
+      display: flex;
+      gap: 16px;
+    }
+
+    #smiles-display {
+      background: #0d1b2a;
+      border: 1px solid #0f3460;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #5dade2;
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="tool-group">
+    <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')">鉛筆 (D)</button>
+    <button class="tool-btn" id="btn-select" onclick="setTool('select')">選択 (S)</button>
+    <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">消去 (E)</button>
+  </div>
+  <div class="tool-group">
+    <button class="tool-btn" onclick="clearCanvas()">クリア</button>
+    <button class="tool-btn" onclick="undo()">元に戻す</button>
+  </div>
+  <div class="tool-group">
+    <button class="tool-btn" onclick="exportSVG()">SVG出力</button>
+    <button class="tool-btn" onclick="callBackend()">SMILES取得</button>
+  </div>
+  <span style="font-size:12px;color:#aaa;">Backend: </span>
+  <span id="backend-status" style="font-size:12px;color:#e74c3c;">未接続</span>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <h3>原子</h3>
+    <div class="element-grid" id="element-grid"></div>
+
+    <h3>結合</h3>
+    <div id="bond-types">
+      <button class="bond-btn active" id="bond-single" onclick="setBond(1)">─ 単結合</button>
+      <button class="bond-btn" id="bond-double" onclick="setBond(2)">═ 二重結合</button>
+      <button class="bond-btn" id="bond-triple" onclick="setBond(3)">≡ 三重結合</button>
+    </div>
+
+    <h3>テンプレート</h3>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <button class="bond-btn" onclick="insertTemplate('benzene')">ベンゼン環</button>
+      <button class="bond-btn" onclick="insertTemplate('cyclohexane')">シクロヘキサン</button>
+      <button class="bond-btn" onclick="insertTemplate('cyclopentane')">シクロペンタン</button>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="chem-canvas"></canvas>
+  </div>
+</div>
+
+<div id="info-bar">
+  <span>原子数: <b id="atom-count">0</b></span>
+  <span>結合数: <b id="bond-count">0</b></span>
+  <span style="flex:1">SMILES: <span id="smiles-display">-</span></span>
+  <span id="coords" style="min-width:120px;text-align:right"></span>
+</div>
+
+<script src="app.js?v=2"></script>
+</body>
+</html>
