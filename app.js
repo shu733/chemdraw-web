@@ -17,6 +17,7 @@ let state = {
   bondOrder: 1,
   selected: new Set(),
   history: [],
+  skeletalMode: false,  // 炭素骨格式モード
 };
 
 let drag = null;  // {type, atomId, startX, startY, curX, curY}
@@ -83,6 +84,14 @@ function setBond(order) {
   [1,2,3].forEach(o => {
     document.getElementById('bond-'+['single','double','triple'][o-1]).classList.toggle('active', o === order);
   });
+}
+
+function toggleSkeletal() {
+  state.skeletalMode = !state.skeletalMode;
+  document.getElementById('btn-skeletal').classList.toggle('active', state.skeletalMode);
+  // 骨格式モードに入るとき自動的にCを選択
+  if (state.skeletalMode) selectElement('C');
+  render();
 }
 
 // ========== History ==========
@@ -309,6 +318,7 @@ function onKeyDown(e) {
   if (e.key === 'd' || e.key === 'D') setTool('draw');
   if (e.key === 's' || e.key === 'S') setTool('select');
   if (e.key === 'e' || e.key === 'E') setTool('erase');
+  if (e.key === 'k' || e.key === 'K') toggleSkeletal();
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   if (e.key === 'Delete' || e.key === 'Backspace') {
     // erase hovered atom
@@ -358,6 +368,12 @@ function render() {
   }
 }
 
+function atomNeedsLabel(a) {
+  // 骨格式モードでは炭素ラベルを非表示
+  if (state.skeletalMode && a.symbol === 'C') return false;
+  return true;
+}
+
 function drawBond(a1, a2, order) {
   const dx = a2.x - a1.x, dy = a2.y - a1.y;
   const len = Math.sqrt(dx*dx+dy*dy);
@@ -365,10 +381,11 @@ function drawBond(a1, a2, order) {
   const ux = dx/len, uy = dy/len;
   const px = -uy, py = ux; // perpendicular
 
-  // shorten to atom label radius
-  const r = 18;
-  const x1 = a1.x + ux*r, y1 = a1.y + uy*r;
-  const x2 = a2.x - ux*r, y2 = a2.y - uy*r;
+  // 骨格式モードでは炭素頂点まで線を伸ばし、ラベルのある原子だけ手前で止める
+  const r1 = atomNeedsLabel(a1) ? 18 : 0;
+  const r2 = atomNeedsLabel(a2) ? 18 : 0;
+  const x1 = a1.x + ux*r1, y1 = a1.y + uy*r1;
+  const x2 = a2.x - ux*r2, y2 = a2.y - uy*r2;
 
   ctx.strokeStyle = '#333';
   ctx.lineWidth = 2;
@@ -397,28 +414,41 @@ function drawLine(x1, y1, x2, y2) {
 
 function drawAtom(a) {
   const isHovered = hoveredAtom && hoveredAtom.id === a.id;
-  const fontSize = a.symbol.length > 1 ? 12 : 15;
-  ctx.font = `bold ${fontSize}px sans-serif`;
-  const tw = ctx.measureText(a.symbol).width;
-  const pad = 5;
-  const rw = tw / 2 + pad, rh = fontSize / 2 + pad;
+  const showLabel = atomNeedsLabel(a);
 
-  // white background rectangle (clears bond lines behind label)
-  ctx.fillStyle = isHovered ? '#d6eaf8' : CANVAS_BG;
-  ctx.fillRect(a.x - rw, a.y - rh, rw * 2, rh * 2);
+  if (showLabel) {
+    const fontSize = a.symbol.length > 1 ? 12 : 15;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    const tw = ctx.measureText(a.symbol).width;
+    const pad = 5;
+    const rw = tw / 2 + pad, rh = fontSize / 2 + pad;
 
-  if (isHovered) {
-    ctx.strokeStyle = '#2874a6';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(a.x - rw, a.y - rh, rw * 2, rh * 2);
+    ctx.fillStyle = isHovered ? '#d6eaf8' : CANVAS_BG;
+    ctx.fillRect(a.x - rw, a.y - rh, rw * 2, rh * 2);
+
+    if (isHovered) {
+      ctx.strokeStyle = '#2874a6';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(a.x - rw, a.y - rh, rw * 2, rh * 2);
+    }
+
+    const color = ATOM_COLORS[a.symbol] || ATOM_COLORS.default;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(a.symbol, a.x, a.y);
+  } else {
+    // 骨格式モードの炭素：ホバー時だけ小さな円でハイライト
+    if (isHovered) {
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(40, 116, 166, 0.2)';
+      ctx.fill();
+      ctx.strokeStyle = '#2874a6';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
   }
-
-  // label
-  const color = ATOM_COLORS[a.symbol] || ATOM_COLORS.default;
-  ctx.fillStyle = color;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(a.symbol, a.x, a.y);
 }
 
 // ========== Info bar ==========
