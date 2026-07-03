@@ -17,7 +17,8 @@ let state = {
   bondOrder: 1,
   selected: new Set(),
   history: [],
-  skeletalMode: false,  // 炭素骨格式モード
+  skeletalMode: false,
+  bwMode: false,        // 白黒モード
 };
 
 let drag = null;  // {type, atomId, startX, startY, curX, curY}
@@ -89,8 +90,13 @@ function setBond(order) {
 function toggleSkeletal() {
   state.skeletalMode = !state.skeletalMode;
   document.getElementById('btn-skeletal').classList.toggle('active', state.skeletalMode);
-  // 骨格式モードに入るとき自動的にCを選択
   if (state.skeletalMode) selectElement('C');
+  render();
+}
+
+function toggleBW() {
+  state.bwMode = !state.bwMode;
+  document.getElementById('btn-bw').classList.toggle('active', state.bwMode);
   render();
 }
 
@@ -319,6 +325,7 @@ function onKeyDown(e) {
   if (e.key === 's' || e.key === 'S') setTool('select');
   if (e.key === 'e' || e.key === 'E') setTool('erase');
   if (e.key === 'k' || e.key === 'K') toggleSkeletal();
+  if (e.key === 'b' || e.key === 'B') toggleBW();
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
   if (e.key === 'Delete' || e.key === 'Backspace') {
     // erase hovered atom
@@ -381,13 +388,13 @@ function drawBond(a1, a2, order) {
   const ux = dx/len, uy = dy/len;
   const px = -uy, py = ux; // perpendicular
 
-  // 骨格式モードでは炭素頂点まで線を伸ばし、ラベルのある原子だけ手前で止める
-  const r1 = atomNeedsLabel(a1) ? 18 : 0;
-  const r2 = atomNeedsLabel(a2) ? 18 : 0;
+  // ラベルのある原子だけ手前で止める（隙間を小さく）
+  const r1 = atomNeedsLabel(a1) ? 11 : 0;
+  const r2 = atomNeedsLabel(a2) ? 11 : 0;
   const x1 = a1.x + ux*r1, y1 = a1.y + uy*r1;
   const x2 = a2.x - ux*r2, y2 = a2.y - uy*r2;
 
-  ctx.strokeStyle = '#333';
+  ctx.strokeStyle = state.bwMode ? '#000' : '#333';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
 
@@ -432,13 +439,22 @@ function drawAtom(a) {
       ctx.strokeRect(a.x - rw, a.y - rh, rw * 2, rh * 2);
     }
 
-    const color = ATOM_COLORS[a.symbol] || ATOM_COLORS.default;
+    const color = state.bwMode ? '#000' : (ATOM_COLORS[a.symbol] || ATOM_COLORS.default);
     ctx.fillStyle = color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(a.symbol, a.x, a.y);
   } else {
-    // 骨格式モードの炭素：ホバー時だけ小さな円でハイライト
+    // 骨格式モードの炭素
+    // 結合が1本以下（孤立・末端）は小さな点を表示して存在を示す
+    const bondCount = state.bonds.filter(b => b.a === a.id || b.b === a.id).length;
+    if (bondCount === 0) {
+      // 孤立原子：点を表示
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = state.bwMode ? '#000' : '#555';
+      ctx.fill();
+    }
     if (isHovered) {
       ctx.beginPath();
       ctx.arc(a.x, a.y, 7, 0, Math.PI * 2);
@@ -530,6 +546,97 @@ async function callBackend() {
   } catch {
     alert('バックエンドに接続できません。\npython backend/main.py を起動してください。');
   }
+}
+
+// ========== MOL Import ==========
+function importMOL(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      parseMOL(e.target.result);
+    } catch(err) {
+      alert('MOLファイルの読み込みに失敗しました:\n' + err.message);
+    }
+    // 同じファイルを再度選べるようにリセット
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function parseMOL(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+  // ヘッダー3行をスキップ
+  // 4行目: counts line  "aaabbblllfffcccsssxxxrrrpppiiimmmvvvvvv"
+  const countsLine = lines[3] || '';
+  const numAtoms = parseInt(countsLine.substring(0, 3).trim(), 10);
+  const numBonds = parseInt(countsLine.substring(3, 6).trim(), 10);
+
+  if (isNaN(numAtoms) || isNaN(numBonds)) throw new Error('counts lineが読めません');
+
+  // MOL座標をキャンバス座標へスケーリング
+  const molAtoms = [];
+  for (let i = 0; i < numAtoms; i++) {
+    const line = lines[4 + i] || '';
+    const x  = parseFloat(line.substring(0, 10).trim());
+    const y  = parseFloat(line.substring(10, 20).trim());
+    const sym = line.substring(31, 34).trim();
+    if (!sym) throw new Error(`原子行 ${i+1} が読めません`);
+    molAtoms.push({x, y, symbol: sym});
+  }
+
+  // 座標をキャンバスに合わせてスケーリング
+  const xs = molAtoms.map(a => a.x), ys = molAtoms.map(a => a.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const molW = maxX - minX || 1, molH = maxY - minY || 1;
+  const padX = canvas.width  * 0.1;
+  const padY = canvas.height * 0.1;
+  const scaleX = (canvas.width  - padX * 2) / molW;
+  const scaleY = (canvas.height - padY * 2) / molH;
+  const scale  = Math.min(scaleX, scaleY, 80); // 最大80px/Å
+  const offX = padX + (canvas.width  - padX*2 - molW * scale) / 2;
+  const offY = padY + (canvas.height - padY*2 - molH * scale) / 2;
+
+  saveHistory();
+  state.atoms = [];
+  state.bonds = [];
+
+  const idMap = {}; // mol index (1-based) → state id
+  molAtoms.forEach((ma, i) => {
+    const id = state.nextId++;
+    idMap[i + 1] = id;
+    state.atoms.push({
+      id,
+      x: offX + (ma.x - minX) * scale,
+      y: offY + (maxY - ma.y) * scale, // Y反転（MOLはY上向き）
+      symbol: ma.symbol,
+      charge: 0,
+    });
+  });
+
+  // 結合ブロック
+  const bondTypeMap = {1:1, 2:2, 3:3, 4:1}; // 4=芳香族→単結合で代用
+  for (let i = 0; i < numBonds; i++) {
+    const line = lines[4 + numAtoms + i] || '';
+    const a1  = parseInt(line.substring(0, 3).trim(), 10);
+    const a2  = parseInt(line.substring(3, 6).trim(), 10);
+    const type = parseInt(line.substring(6, 9).trim(), 10);
+    if (idMap[a1] && idMap[a2]) {
+      state.bonds.push({
+        id: state.nextId++,
+        a: idMap[a1],
+        b: idMap[a2],
+        order: bondTypeMap[type] || 1,
+      });
+    }
+  }
+
+  updateInfoBar();
+  render();
+  localSMILES();
 }
 
 // ========== Export ==========

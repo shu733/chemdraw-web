@@ -148,8 +148,13 @@
   </div>
   <div class="tool-group">
     <button class="tool-btn" id="btn-skeletal" onclick="toggleSkeletal()">骨格式 (K)</button>
+    <button class="tool-btn" id="btn-bw" onclick="toggleBW()">白黒 (B)</button>
   </div>
   <div class="tool-group">
+    <label class="tool-btn" style="cursor:pointer;">
+      MOL読込
+      <input type="file" id="mol-input" accept=".mol,.sdf" style="display:none" onchange="importMOL(this)">
+    </label>
     <button class="tool-btn" onclick="exportSVG()">SVG出力</button>
     <button class="tool-btn" onclick="callBackend()">SMILES取得</button>
   </div>
@@ -189,6 +194,6 @@
   <span id="coords" style="min-width:120px;text-align:right"></span>
 </div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=1783050087"></script>
 </body>
 </html>
