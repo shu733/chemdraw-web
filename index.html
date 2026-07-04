@@ -5,181 +5,244 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChemDraw Web</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: sans-serif; background: #1a1a2e; color: #eee; height: 100vh; display: flex; flex-direction: column; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:sans-serif; background:#1a1a2e; color:#eee; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
     #toolbar {
-      background: #16213e;
-      border-bottom: 1px solid #0f3460;
-      padding: 8px 12px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+      background:#16213e; border-bottom:1px solid #0f3460;
+      padding:5px 10px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;
     }
+    .tg { display:flex; gap:3px; border-right:1px solid #0f3460; padding-right:6px; align-items:center; }
+    .tg:last-child { border-right:none; }
+    .tb {
+      background:#0f3460; color:#eee; border:1px solid #1a1a6e; border-radius:4px;
+      padding:5px 8px; cursor:pointer; font-size:12px; white-space:nowrap; transition:background 0.1s;
+    }
+    .tb:hover { background:#1a5276; }
+    .tb.active { background:#2874a6; border-color:#5dade2; }
+    .tg-label { font-size:11px; color:#888; }
 
-    .tool-group {
-      display: flex;
-      gap: 4px;
-      border-right: 1px solid #0f3460;
-      padding-right: 8px;
-    }
-
-    .tool-btn {
-      background: #0f3460;
-      color: #eee;
-      border: 1px solid #1a1a6e;
-      border-radius: 4px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.15s;
-      white-space: nowrap;
-    }
-    .tool-btn:hover { background: #1a5276; }
-    .tool-btn.active { background: #2874a6; border-color: #5dade2; }
-
-    #atom-select {
-      background: #0f3460;
-      color: #eee;
-      border: 1px solid #1a1a6e;
-      border-radius: 4px;
-      padding: 6px;
-      font-size: 13px;
-    }
-
-    #main {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+    #main { display:flex; flex:1; overflow:hidden; }
 
     #sidebar {
-      width: 180px;
-      background: #16213e;
-      border-right: 1px solid #0f3460;
-      padding: 10px;
-      overflow-y: auto;
+      width:170px; background:#16213e; border-right:1px solid #0f3460;
+      padding:8px; overflow-y:auto; flex-shrink:0;
     }
+    #sidebar h3 { font-size:10px; color:#888; margin:10px 0 5px; text-transform:uppercase; letter-spacing:0.5px; }
+    #sidebar h3:first-child { margin-top:0; }
 
-    #sidebar h3 { font-size: 12px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; }
-
-    .element-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-      margin-bottom: 12px;
-    }
-
+    .elem-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; margin-bottom:4px; }
     .elem-btn {
-      background: #0f3460;
-      border: 1px solid #1a1a6e;
-      color: #eee;
-      border-radius: 4px;
-      padding: 5px;
-      cursor: pointer;
-      font-size: 12px;
-      text-align: center;
-      transition: background 0.15s;
+      background:#0f3460; border:1px solid #1a1a6e; color:#eee;
+      border-radius:3px; padding:4px 2px; cursor:pointer; font-size:11px; text-align:center;
     }
-    .elem-btn:hover { background: #1a5276; }
-    .elem-btn.active { background: #117a65; border-color: #1abc9c; }
+    .elem-btn:hover { background:#1a5276; }
+    .elem-btn.active { background:#117a65; border-color:#1abc9c; }
 
-    #bond-types { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    #elem-custom-row { display:flex; gap:3px; margin-bottom:6px; }
+    #elem-custom {
+      flex:1; background:#0f3460; border:1px solid #1a1a6e; color:#eee;
+      border-radius:3px; padding:3px 5px; font-size:12px; min-width:0;
+    }
+    #elem-custom-btn { background:#0f3460; border:1px solid #1a1a6e; color:#eee; border-radius:3px; padding:3px 6px; cursor:pointer; font-size:11px; }
+    #elem-custom-btn:hover { background:#1a5276; }
 
+    .btn-col { display:flex; flex-direction:column; gap:3px; margin-bottom:4px; }
     .bond-btn {
-      background: #0f3460;
-      border: 1px solid #1a1a6e;
-      color: #eee;
-      border-radius: 4px;
-      padding: 5px 8px;
-      cursor: pointer;
-      font-size: 12px;
-      transition: background 0.15s;
+      background:#0f3460; border:1px solid #1a1a6e; color:#eee;
+      border-radius:3px; padding:4px 6px; cursor:pointer; font-size:11px; text-align:left;
     }
-    .bond-btn:hover { background: #1a5276; }
-    .bond-btn.active { background: #6c3483; border-color: #a569bd; }
+    .bond-btn:hover { background:#1a5276; }
+    .bond-btn.active { background:#6c3483; border-color:#a569bd; }
 
-    #canvas-container {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
+    .ring-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; margin-bottom:4px; }
+    .ring-btn {
+      background:#0f3460; border:1px solid #1a1a6e; color:#eee;
+      border-radius:3px; padding:4px 2px; cursor:pointer; font-size:11px; text-align:center;
     }
+    .ring-btn:hover { background:#1a5276; }
+    .ring-btn.active { background:#2874a6; border-color:#5dade2; }
 
-    canvas {
-      display: block;
-      background: #f5f5f0;
-      cursor: crosshair;
+    .tpl-section { margin-bottom:4px; }
+    .tpl-label { font-size:10px; color:#777; margin:4px 0 2px; }
+    .tpl-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+    .tpl-btn {
+      background:#0f3460; border:1px solid #1a1a6e; color:#ddd;
+      border-radius:3px; padding:4px 4px; cursor:pointer; font-size:10px; text-align:center;
     }
+    .tpl-btn:hover { background:#1a5276; }
+
+    #canvas-container { flex:1; position:relative; overflow:hidden; }
+    canvas { display:block; background:#fff; cursor:crosshair; }
 
     #info-bar {
-      background: #16213e;
-      border-top: 1px solid #0f3460;
-      padding: 4px 12px;
-      font-size: 12px;
-      color: #aaa;
-      display: flex;
-      gap: 16px;
+      background:#16213e; border-top:1px solid #0f3460;
+      padding:3px 10px; font-size:11px; color:#aaa; display:flex; gap:12px; align-items:center;
     }
-
     #smiles-display {
-      background: #0d1b2a;
-      border: 1px solid #0f3460;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-family: monospace;
-      font-size: 12px;
-      color: #5dade2;
-      flex: 1;
+      background:#0d1b2a; border:1px solid #0f3460; border-radius:3px;
+      padding:2px 6px; font-family:monospace; font-size:11px; color:#5dade2; flex:1;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
+    .charge-btns { display:flex; gap:3px; margin-bottom:4px; }
+    .chg-btn {
+      flex:1; background:#0f3460; border:1px solid #1a1a6e; color:#eee;
+      border-radius:3px; padding:3px 0; cursor:pointer; font-size:12px; text-align:center;
+    }
+    .chg-btn:hover { background:#1a5276; }
   </style>
 </head>
 <body>
 
 <div id="toolbar">
-  <div class="tool-group">
-    <button class="tool-btn active" id="btn-draw" onclick="setTool('draw')">鉛筆 (D)</button>
-    <button class="tool-btn" id="btn-select" onclick="setTool('select')">選択 (S)</button>
-    <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">消去 (E)</button>
+  <div class="tg">
+    <button class="tb active" data-tool="draw" onclick="setTool('draw')">鉛筆 (D)</button>
+    <button class="tb" data-tool="select" onclick="setTool('select')">選択 (S)</button>
+    <button class="tb" data-tool="erase" onclick="setTool('erase')">消去 (E)</button>
   </div>
-  <div class="tool-group">
-    <button class="tool-btn" onclick="clearCanvas()">クリア</button>
-    <button class="tool-btn" onclick="undo()">元に戻す</button>
+  <div class="tg">
+    <button class="tb" onclick="undo()">元に戻す</button>
+    <button class="tb" onclick="redo()">やり直し</button>
+    <button class="tb" onclick="clearCanvas()">クリア</button>
   </div>
-  <div class="tool-group">
-    <button class="tool-btn" id="btn-skeletal" onclick="toggleSkeletal()">骨格式 (K)</button>
-    <button class="tool-btn" id="btn-bw" onclick="toggleBW()">白黒 (B)</button>
+  <div class="tg">
+    <button class="tb" onclick="zoomIn()">拡大 (+)</button>
+    <button class="tb" onclick="zoomOut()">縮小 (−)</button>
+    <button class="tb" onclick="zoomFit()">全体表示 (0)</button>
   </div>
-  <div class="tool-group">
-    <label class="tool-btn" style="cursor:pointer;">
+  <div class="tg">
+    <button class="tb" id="btn-bw" onclick="toggleBW()">白黒 (B)</button>
+  </div>
+  <div class="tg">
+    <label class="tb" style="cursor:pointer;">
       MOL読込
       <input type="file" id="mol-input" accept=".mol,.sdf" style="display:none" onchange="importMOL(this)">
     </label>
-    <button class="tool-btn" onclick="exportSVG()">SVG出力</button>
-    <button class="tool-btn" onclick="callBackend()">SMILES取得</button>
+    <button class="tb" onclick="exportSVG()">SVG出力</button>
+    <button class="tb" onclick="callBackend()">SMILES取得</button>
   </div>
-  <span style="font-size:12px;color:#aaa;">Backend: </span>
-  <span id="backend-status" style="font-size:12px;color:#e74c3c;">未接続</span>
+  <div class="tg">
+    <span class="tg-label">Backend:</span>
+    <span id="backend-status" style="font-size:11px;color:#e74c3c;">未接続</span>
+  </div>
 </div>
 
 <div id="main">
   <div id="sidebar">
     <h3>原子</h3>
-    <div class="element-grid" id="element-grid"></div>
+    <div class="elem-grid" id="element-grid"></div>
+    <div id="elem-custom-row">
+      <input id="elem-custom" type="text" placeholder="例: Fe" maxlength="3">
+      <button id="elem-custom-btn" onclick="setCustomElement()">設定</button>
+    </div>
 
     <h3>結合</h3>
-    <div id="bond-types">
-      <button class="bond-btn active" id="bond-single" onclick="setBond(1)">─ 単結合</button>
-      <button class="bond-btn" id="bond-double" onclick="setBond(2)">═ 二重結合</button>
-      <button class="bond-btn" id="bond-triple" onclick="setBond(3)">≡ 三重結合</button>
+    <div class="btn-col" id="bond-types">
+      <button class="bond-btn active" id="bond-single" onclick="setBond(1,'')">─ 単結合</button>
+      <button class="bond-btn" id="bond-double" onclick="setBond(2,'')">═ 二重結合</button>
+      <button class="bond-btn" id="bond-triple" onclick="setBond(3,'')">≡ 三重結合</button>
+      <button class="bond-btn" id="bond-wedge" onclick="setBond(1,'wedge')">▶ ウェッジ (前)</button>
+      <button class="bond-btn" id="bond-dash" onclick="setBond(1,'dash')">⋯ 破線 (後)</button>
+    </div>
+
+    <h3>電荷 (右クリックで変更)</h3>
+    <div class="charge-btns">
+      <button class="chg-btn" title="右クリックで電荷を変更できます">+</button>
+      <button class="chg-btn">−</button>
+    </div>
+
+    <h3>環ツール</h3>
+    <div class="ring-grid">
+      <button class="ring-btn" data-tool="ring3" onclick="setTool('ring3')">3員環</button>
+      <button class="ring-btn" data-tool="ring4" onclick="setTool('ring4')">4員環</button>
+      <button class="ring-btn" data-tool="ring5" onclick="setTool('ring5')">5員環</button>
+      <button class="ring-btn" data-tool="ring6" onclick="setTool('ring6')">6員環</button>
+      <button class="ring-btn" data-tool="ring7" onclick="setTool('ring7')">7員環</button>
+      <button class="ring-btn" data-tool="ring8" onclick="setTool('ring8')">8員環</button>
     </div>
 
     <h3>テンプレート</h3>
-    <div style="display:flex;flex-direction:column;gap:4px;">
-      <button class="bond-btn" onclick="insertTemplate('benzene')">ベンゼン環</button>
-      <button class="bond-btn" onclick="insertTemplate('cyclohexane')">シクロヘキサン</button>
-      <button class="bond-btn" onclick="insertTemplate('cyclopentane')">シクロペンタン</button>
+
+    <div class="tpl-section">
+      <div class="tpl-label">基本環</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('benzene')">ベンゼン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cyclohexane')">シクロヘキサン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cyclopentane')">シクロペンタン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cyclobutane')">シクロブタン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cyclopropane')">シクロプロパン</button>
+        <button class="tpl-btn" onclick="insertTemplate('naphthalene')">ナフタレン</button>
+        <button class="tpl-btn" onclick="insertTemplate('anthracene')">アントラセン</button>
+      </div>
     </div>
+
+    <div class="tpl-section">
+      <div class="tpl-label">複素環</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('pyridine')">ピリジン</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyrimidine')">ピリミジン</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyrazine')">ピラジン</button>
+        <button class="tpl-btn" onclick="insertTemplate('imidazole')">イミダゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyrazole')">ピラゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('oxazole')">オキサゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('furan')">フラン</button>
+        <button class="tpl-btn" onclick="insertTemplate('thiophene')">チオフェン</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyrrole')">ピロール</button>
+        <button class="tpl-btn" onclick="insertTemplate('indole')">インドール</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-label">核酸塩基</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('adenine')">アデニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('guanine')">グアニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cytosine')">シトシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('thymine')">チミン</button>
+        <button class="tpl-btn" onclick="insertTemplate('uracil')">ウラシル</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-label">アミノ酸</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('glycine')">グリシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('alanine')">アラニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('valine')">バリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('serine')">セリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cysteine')">システイン</button>
+        <button class="tpl-btn" onclick="insertTemplate('methionine')">メチオニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('phenylalanine')">Phe</button>
+        <button class="tpl-btn" onclick="insertTemplate('tyrosine')">Tyr</button>
+        <button class="tpl-btn" onclick="insertTemplate('tryptophan')">Trp</button>
+        <button class="tpl-btn" onclick="insertTemplate('histidine')">His</button>
+        <button class="tpl-btn" onclick="insertTemplate('aspartate')">Asp</button>
+        <button class="tpl-btn" onclick="insertTemplate('glutamate')">Glu</button>
+        <button class="tpl-btn" onclick="insertTemplate('lysine')">Lys</button>
+        <button class="tpl-btn" onclick="insertTemplate('proline')">Pro</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-label">糖・ヌクレオチド</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('glucose')">グルコース</button>
+        <button class="tpl-btn" onclick="insertTemplate('ribose')">リボース</button>
+        <button class="tpl-btn" onclick="insertTemplate('ATP')">ATP</button>
+        <button class="tpl-btn" onclick="insertTemplate('ADP')">ADP</button>
+        <button class="tpl-btn" onclick="insertTemplate('AMP')">AMP</button>
+      </div>
+    </div>
+
+    <div class="tpl-section">
+      <div class="tpl-label">官能基</div>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('carboxyl')">カルボキシル</button>
+        <button class="tpl-btn" onclick="insertTemplate('phosphate')">リン酸</button>
+        <button class="tpl-btn" onclick="insertTemplate('acetyl')">アセチル</button>
+      </div>
+    </div>
+
   </div>
 
   <div id="canvas-container">
@@ -188,12 +251,12 @@
 </div>
 
 <div id="info-bar">
-  <span>原子数: <b id="atom-count">0</b></span>
-  <span>結合数: <b id="bond-count">0</b></span>
+  <span>原子: <b id="atom-count">0</b></span>
+  <span>結合: <b id="bond-count">0</b></span>
   <span style="flex:1">SMILES: <span id="smiles-display">-</span></span>
-  <span id="coords" style="min-width:120px;text-align:right"></span>
+  <span id="coords" style="min-width:100px;text-align:right;font-size:10px;color:#666;"></span>
 </div>
 
-<script src="app.js?v=1783050087"></script>
+<script src="app.js?v=1783200000"></script>
 </body>
 </html>
