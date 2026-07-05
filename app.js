@@ -596,9 +596,9 @@ function drawBond(a1, a2, bond) {
   const ord=bond.order||1;
 
   if (st==='wedge') {
-    drawWedge(a1.x,a1.y,x2,y2,true,col);
+    drawWedge(a1.x,a1.y,x2,y2,true,col,a2,bond.id);
   } else if (st==='dash') {
-    drawWedge(a1.x,a1.y,x2,y2,false,col);
+    drawWedge(a1.x,a1.y,x2,y2,false,col,a2,bond.id);
   } else if (ord===1) {
     line(x1,y1,x2,y2);
   } else if (ord===2) {
@@ -613,19 +613,57 @@ function drawBond(a1, a2, bond) {
   }
 }
 
-function drawWedge(x1,y1,x2,y2,filled,col) {
+function wedgeCorners(x1,y1,x2,y2,termAtom,bondId) {
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  const px=-dy/len, py=dx/len, w=4/state.zoom;
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux, w=4/state.zoom;
+  // default corners at wide end
+  let c1x=x2+px*w, c1y=y2+py*w;
+  let c2x=x2-px*w, c2y=y2-py*w;
+
+  if (termAtom) {
+    const adj=state.bonds.filter(b=>b.id!==bondId&&(b.a===termAtom.id||b.b===termAtom.id));
+    for (const b of adj) {
+      const other=getAtom(b.a===termAtom.id?b.b:b.a);
+      if (!other) continue;
+      const adx=other.x-termAtom.x, ady=other.y-termAtom.y, al=Math.hypot(adx,ady);
+      const aux=adx/al, auy=ady/al;
+      // skip bonds going back toward a1
+      if (aux*ux+auy*uy < -0.3) continue;
+      // cross product: +left, -right of wedge direction
+      const cross=aux*uy-auy*ux;
+      // find intersection of wedge edge line with adjacent bond line
+      // wedge edge: P=(x1,y1)+t*(ex,ey); adj bond: Q=termAtom+s*(aux,auy)
+      const intersect=(ex,ey)=>{
+        const denom=ex*auy-ey*aux;
+        if (Math.abs(denom)<1e-6) return null;
+        const t=((termAtom.x-x1)*auy-(termAtom.y-y1)*aux)/denom;
+        return t>0.5 ? {x:x1+t*ex, y:y1+t*ey} : null;
+      };
+      if (cross>0.1) {
+        const p=intersect(c1x-x1,c1y-y1);
+        if (p){c1x=p.x;c1y=p.y;}
+      } else if (cross<-0.1) {
+        const p=intersect(c2x-x1,c2y-y1);
+        if (p){c2x=p.x;c2y=p.y;}
+      }
+    }
+  }
+  return {c1x,c1y,c2x,c2y,dx,dy,len};
+}
+
+function drawWedge(x1,y1,x2,y2,filled,col,termAtom,bondId) {
+  const {c1x,c1y,c2x,c2y,dx,dy,len}=wedgeCorners(x1,y1,x2,y2,termAtom,bondId);
   if (filled) {
     ctx.beginPath(); ctx.moveTo(x1,y1);
-    ctx.lineTo(x2+px*w,y2+py*w); ctx.lineTo(x2-px*w,y2-py*w);
+    ctx.lineTo(c1x,c1y); ctx.lineTo(c2x,c2y);
     ctx.closePath(); ctx.fillStyle=col; ctx.fill();
   } else {
     const n=Math.max(3,Math.round(len/(7/state.zoom)));
     ctx.lineWidth=1.2/state.zoom;
     for (let i=0;i<=n;i++) {
-      const t=i/n, cx=x1+dx*t, cy=y1+dy*t, hw=w*t;
-      line(cx+px*hw,cy+py*hw,cx-px*hw,cy-py*hw);
+      const t=i/n;
+      line(x1+(c1x-x1)*t, y1+(c1y-y1)*t, x1+(c2x-x1)*t, y1+(c2y-y1)*t);
     }
   }
 }
