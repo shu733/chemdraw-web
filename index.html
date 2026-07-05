@@ -63,14 +63,25 @@
     .ring-btn:hover { background:#1a5276; }
     .ring-btn.active { background:#2874a6; border-color:#5dade2; }
 
-    .tpl-section { margin-bottom:4px; }
-    .tpl-label { font-size:10px; color:#777; margin:4px 0 2px; }
-    .tpl-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+    .tpl-section { margin-bottom:2px; }
+    .tpl-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; padding:4px 0; }
     .tpl-btn {
       background:#0f3460; border:1px solid #1a1a6e; color:#ddd;
       border-radius:3px; padding:4px 4px; cursor:pointer; font-size:10px; text-align:center;
     }
     .tpl-btn:hover { background:#1a5276; }
+
+    details { margin-bottom:2px; }
+    details summary {
+      font-size:10px; color:#aaa; cursor:pointer; padding:3px 4px;
+      background:#0a1628; border-radius:3px; list-style:none;
+      display:flex; align-items:center; gap:4px; user-select:none;
+    }
+    details summary::-webkit-details-marker { display:none; }
+    details summary::before { content:'▶'; font-size:8px; color:#555; transition:transform 0.15s; }
+    details[open] summary::before { transform:rotate(90deg); }
+    details summary:hover { background:#0f2040; color:#ccc; }
+    details[open] summary { color:#ccc; }
 
     #canvas-container { flex:1; position:relative; overflow:hidden; }
     canvas { display:block; background:#fff; cursor:crosshair; }
@@ -163,8 +174,8 @@
 
     <h3>テンプレート</h3>
 
-    <div class="tpl-section">
-      <div class="tpl-label">基本環</div>
+    <details>
+      <summary>基本環</summary>
       <div class="tpl-grid">
         <button class="tpl-btn" onclick="insertTemplate('benzene')">ベンゼン</button>
         <button class="tpl-btn" onclick="insertTemplate('cyclohexane')">シクロヘキサン</button>
@@ -173,75 +184,147 @@
         <button class="tpl-btn" onclick="insertTemplate('cyclopropane')">シクロプロパン</button>
         <button class="tpl-btn" onclick="insertTemplate('naphthalene')">ナフタレン</button>
         <button class="tpl-btn" onclick="insertTemplate('anthracene')">アントラセン</button>
+        <button class="tpl-btn" onclick="insertTemplate('phenanthrene')">フェナントレン</button>
+        <button class="tpl-btn" onclick="insertTemplate('azulene')">アズレン</button>
+        <button class="tpl-btn" onclick="insertTemplate('adamantane')">アダマンタン</button>
       </div>
-    </div>
+    </details>
 
-    <div class="tpl-section">
-      <div class="tpl-label">複素環</div>
+    <details>
+      <summary>複素環</summary>
       <div class="tpl-grid">
         <button class="tpl-btn" onclick="insertTemplate('pyridine')">ピリジン</button>
         <button class="tpl-btn" onclick="insertTemplate('pyrimidine')">ピリミジン</button>
         <button class="tpl-btn" onclick="insertTemplate('pyrazine')">ピラジン</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyridazine')">ピリダジン</button>
+        <button class="tpl-btn" onclick="insertTemplate('triazine')">トリアジン</button>
         <button class="tpl-btn" onclick="insertTemplate('imidazole')">イミダゾール</button>
         <button class="tpl-btn" onclick="insertTemplate('pyrazole')">ピラゾール</button>
         <button class="tpl-btn" onclick="insertTemplate('oxazole')">オキサゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('isoxazole')">イソオキサゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('thiazole')">チアゾール</button>
         <button class="tpl-btn" onclick="insertTemplate('furan')">フラン</button>
         <button class="tpl-btn" onclick="insertTemplate('thiophene')">チオフェン</button>
         <button class="tpl-btn" onclick="insertTemplate('pyrrole')">ピロール</button>
         <button class="tpl-btn" onclick="insertTemplate('indole')">インドール</button>
+        <button class="tpl-btn" onclick="insertTemplate('benzimidazole')">ベンズイミダゾール</button>
+        <button class="tpl-btn" onclick="insertTemplate('quinoline')">キノリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('isoquinoline')">イソキノリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('purine')">プリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('porphyrin')">ポルフィリン</button>
       </div>
-    </div>
+    </details>
 
-    <div class="tpl-section">
-      <div class="tpl-label">核酸塩基</div>
+    <details>
+      <summary>核酸塩基</summary>
       <div class="tpl-grid">
-        <button class="tpl-btn" onclick="insertTemplate('adenine')">アデニン</button>
-        <button class="tpl-btn" onclick="insertTemplate('guanine')">グアニン</button>
-        <button class="tpl-btn" onclick="insertTemplate('cytosine')">シトシン</button>
-        <button class="tpl-btn" onclick="insertTemplate('thymine')">チミン</button>
-        <button class="tpl-btn" onclick="insertTemplate('uracil')">ウラシル</button>
+        <button class="tpl-btn" onclick="insertTemplate('adenine')">アデニン (A)</button>
+        <button class="tpl-btn" onclick="insertTemplate('guanine')">グアニン (G)</button>
+        <button class="tpl-btn" onclick="insertTemplate('cytosine')">シトシン (C)</button>
+        <button class="tpl-btn" onclick="insertTemplate('thymine')">チミン (T)</button>
+        <button class="tpl-btn" onclick="insertTemplate('uracil')">ウラシル (U)</button>
       </div>
-    </div>
+    </details>
 
-    <div class="tpl-section">
-      <div class="tpl-label">アミノ酸</div>
+    <details>
+      <summary>アミノ酸 (全20種)</summary>
       <div class="tpl-grid">
-        <button class="tpl-btn" onclick="insertTemplate('glycine')">グリシン</button>
-        <button class="tpl-btn" onclick="insertTemplate('alanine')">アラニン</button>
-        <button class="tpl-btn" onclick="insertTemplate('valine')">バリン</button>
-        <button class="tpl-btn" onclick="insertTemplate('serine')">セリン</button>
-        <button class="tpl-btn" onclick="insertTemplate('cysteine')">システイン</button>
-        <button class="tpl-btn" onclick="insertTemplate('methionine')">メチオニン</button>
-        <button class="tpl-btn" onclick="insertTemplate('phenylalanine')">Phe</button>
-        <button class="tpl-btn" onclick="insertTemplate('tyrosine')">Tyr</button>
-        <button class="tpl-btn" onclick="insertTemplate('tryptophan')">Trp</button>
-        <button class="tpl-btn" onclick="insertTemplate('histidine')">His</button>
-        <button class="tpl-btn" onclick="insertTemplate('aspartate')">Asp</button>
-        <button class="tpl-btn" onclick="insertTemplate('glutamate')">Glu</button>
-        <button class="tpl-btn" onclick="insertTemplate('lysine')">Lys</button>
-        <button class="tpl-btn" onclick="insertTemplate('proline')">Pro</button>
+        <button class="tpl-btn" onclick="insertTemplate('glycine')">Gly グリシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('alanine')">Ala アラニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('valine')">Val バリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('leucine')">Leu ロイシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('isoleucine')">Ile イソロイシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('proline')">Pro プロリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('phenylalanine')">Phe フェニルAla</button>
+        <button class="tpl-btn" onclick="insertTemplate('tyrosine')">Tyr チロシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('tryptophan')">Trp トリプトファン</button>
+        <button class="tpl-btn" onclick="insertTemplate('serine')">Ser セリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('threonine')">Thr スレオニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('cysteine')">Cys システイン</button>
+        <button class="tpl-btn" onclick="insertTemplate('methionine')">Met メチオニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('aspartate')">Asp アスパラギン酸</button>
+        <button class="tpl-btn" onclick="insertTemplate('glutamate')">Glu グルタミン酸</button>
+        <button class="tpl-btn" onclick="insertTemplate('asparagine')">Asn アスパラギン</button>
+        <button class="tpl-btn" onclick="insertTemplate('glutamine')">Gln グルタミン</button>
+        <button class="tpl-btn" onclick="insertTemplate('lysine')">Lys リシン</button>
+        <button class="tpl-btn" onclick="insertTemplate('arginine')">Arg アルギニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('histidine')">His ヒスチジン</button>
       </div>
-    </div>
+    </details>
 
-    <div class="tpl-section">
-      <div class="tpl-label">糖・ヌクレオチド</div>
+    <details>
+      <summary>糖</summary>
       <div class="tpl-grid">
-        <button class="tpl-btn" onclick="insertTemplate('glucose')">グルコース</button>
-        <button class="tpl-btn" onclick="insertTemplate('ribose')">リボース</button>
+        <button class="tpl-btn" onclick="insertTemplate('glucose')">β-D-グルコース</button>
+        <button class="tpl-btn" onclick="insertTemplate('galactose')">β-D-ガラクトース</button>
+        <button class="tpl-btn" onclick="insertTemplate('fructose')">β-D-フルクトース</button>
+        <button class="tpl-btn" onclick="insertTemplate('mannose')">β-D-マンノース</button>
+        <button class="tpl-btn" onclick="insertTemplate('ribose')">β-D-リボース</button>
+        <button class="tpl-btn" onclick="insertTemplate('deoxyribose')">2-デオキシリボース</button>
+        <button class="tpl-btn" onclick="insertTemplate('glucosamine')">グルコサミン</button>
+        <button class="tpl-btn" onclick="insertTemplate('glucuronic')">グルクロン酸</button>
+      </div>
+    </details>
+
+    <details>
+      <summary>ヌクレオチド・補酵素</summary>
+      <div class="tpl-grid">
         <button class="tpl-btn" onclick="insertTemplate('ATP')">ATP</button>
         <button class="tpl-btn" onclick="insertTemplate('ADP')">ADP</button>
         <button class="tpl-btn" onclick="insertTemplate('AMP')">AMP</button>
+        <button class="tpl-btn" onclick="insertTemplate('GTP')">GTP</button>
+        <button class="tpl-btn" onclick="insertTemplate('NAD')">NAD⁺</button>
+        <button class="tpl-btn" onclick="insertTemplate('NADH')">NADH</button>
+        <button class="tpl-btn" onclick="insertTemplate('FAD')">FAD</button>
+        <button class="tpl-btn" onclick="insertTemplate('CoA')">CoA (簡略)</button>
+        <button class="tpl-btn" onclick="insertTemplate('heme')">ヘム</button>
+        <button class="tpl-btn" onclick="insertTemplate('cAMP')">cAMP</button>
       </div>
-    </div>
+    </details>
 
-    <div class="tpl-section">
-      <div class="tpl-label">官能基</div>
+    <details>
+      <summary>脂質・ステロイド</summary>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('cholesterol-ring')">コレステロール環</button>
+        <button class="tpl-btn" onclick="insertTemplate('steroid')">ステロイド骨格</button>
+        <button class="tpl-btn" onclick="insertTemplate('fatty-acid')">脂肪酸 (C16)</button>
+        <button class="tpl-btn" onclick="insertTemplate('glycerol')">グリセロール</button>
+      </div>
+    </details>
+
+    <details>
+      <summary>有機官能基</summary>
       <div class="tpl-grid">
         <button class="tpl-btn" onclick="insertTemplate('carboxyl')">カルボキシル</button>
-        <button class="tpl-btn" onclick="insertTemplate('phosphate')">リン酸</button>
+        <button class="tpl-btn" onclick="insertTemplate('ester')">エステル</button>
+        <button class="tpl-btn" onclick="insertTemplate('amide')">アミド</button>
+        <button class="tpl-btn" onclick="insertTemplate('aldehyde')">アルデヒド</button>
+        <button class="tpl-btn" onclick="insertTemplate('ketone')">ケトン</button>
+        <button class="tpl-btn" onclick="insertTemplate('phosphate')">リン酸基</button>
+        <button class="tpl-btn" onclick="insertTemplate('sulfonyl')">スルホニル</button>
         <button class="tpl-btn" onclick="insertTemplate('acetyl')">アセチル</button>
+        <button class="tpl-btn" onclick="insertTemplate('nitrile')">ニトリル</button>
+        <button class="tpl-btn" onclick="insertTemplate('nitro')">ニトロ</button>
+        <button class="tpl-btn" onclick="insertTemplate('epoxide')">エポキシド</button>
+        <button class="tpl-btn" onclick="insertTemplate('lactam')">ラクタム (β)</button>
       </div>
-    </div>
+    </details>
+
+    <details>
+      <summary>薬・生体分子</summary>
+      <div class="tpl-grid">
+        <button class="tpl-btn" onclick="insertTemplate('aspirin')">アスピリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('caffeine')">カフェイン</button>
+        <button class="tpl-btn" onclick="insertTemplate('dopamine')">ドーパミン</button>
+        <button class="tpl-btn" onclick="insertTemplate('serotonin')">セロトニン</button>
+        <button class="tpl-btn" onclick="insertTemplate('adrenaline')">アドレナリン</button>
+        <button class="tpl-btn" onclick="insertTemplate('penicillin')">ペニシリン骨格</button>
+        <button class="tpl-btn" onclick="insertTemplate('glucose-6p')">グルコース-6-P</button>
+        <button class="tpl-btn" onclick="insertTemplate('pyruvate')">ピルビン酸</button>
+        <button class="tpl-btn" onclick="insertTemplate('acetyl-coa-simple')">アセチルCoA</button>
+        <button class="tpl-btn" onclick="insertTemplate('citric-acid')">クエン酸</button>
+      </div>
+    </details>
 
   </div>
 

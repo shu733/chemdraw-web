@@ -1224,6 +1224,862 @@ const TEMPLATES = {
     };
   },
 
+  // ── Additional fused/polycyclic ─────────────────────────────
+  'phenanthrene': L => {
+    const H=L*0.866;
+    // three fused rings in angular arrangement
+    const atoms=[
+      {idx:0,sym:'C',x:0,    y:-L/2},{idx:1,sym:'C',x:0,    y: L/2},
+      {idx:2,sym:'C',x:-H,   y:-L},  {idx:3,sym:'C',x:-2*H, y:-L/2},
+      {idx:4,sym:'C',x:-2*H, y: L/2},{idx:5,sym:'C',x:-H,   y: L},
+      {idx:6,sym:'C',x: H,   y:-L},  {idx:7,sym:'C',x: 2*H, y:-L/2},
+      {idx:8,sym:'C',x: 2*H, y: L/2},{idx:9,sym:'C',x: H,   y: L},
+      // third ring fused at 7-8
+      {idx:10,sym:'C',x:3*H,   y:-L},{idx:11,sym:'C',x:4*H, y:-L/2},
+      {idx:12,sym:'C',x:4*H,   y: L/2},{idx:13,sym:'C',x:3*H,y: L},
+    ];
+    return {atoms, bonds:[
+      {i:0,j:1,order:1},
+      {i:0,j:2,order:2},{i:2,j:3,order:1},{i:3,j:4,order:2},{i:4,j:5,order:1},{i:5,j:1,order:2},
+      {i:0,j:6,order:2},{i:6,j:7,order:1},{i:7,j:8,order:2},{i:8,j:9,order:1},{i:9,j:1,order:2},
+      {i:7,j:10,order:1},{i:10,j:11,order:2},{i:11,j:12,order:1},{i:12,j:13,order:2},{i:13,j:8,order:1},
+    ]};
+  },
+
+  'azulene': L => {
+    // 7-membered + 5-membered fused ring
+    const R7=L/(2*Math.sin(Math.PI/7));
+    const R5=L*0.851;
+    const a7=[], a5=[];
+    for(let i=0;i<7;i++){const a=-Math.PI/2+i*2*Math.PI/7;a7.push({x:Math.cos(a)*R7,y:Math.sin(a)*R7});}
+    // shared bond: atoms 0 and 1 of 7-ring = atoms 3 and 2 of 5-ring
+    // place 5-ring sharing bond between a7[0] and a7[6]
+    const mx=(a7[0].x+a7[6].x)/2, my=(a7[0].y+a7[6].y)/2;
+    const dx=a7[0].x-a7[6].x, dy=a7[0].y-a7[6].y, len=Math.hypot(dx,dy);
+    const nx=-dy/len, ny=dx/len;
+    const apm=R5*Math.cos(Math.PI/5);
+    const c5x=mx+nx*apm, c5y=my+ny*apm;
+    for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;a5.push({x:c5x+Math.cos(a)*R5,y:c5y+Math.sin(a)*R5});}
+    const atoms=[
+      ...a7.map((p,i)=>({idx:i,sym:'C',x:p.x,y:p.y})),
+      // a5[0]≈a7[0], a5[4]≈a7[6]; add a5[1..3]
+      {idx:7,sym:'C',x:a5[1].x,y:a5[1].y},
+      {idx:8,sym:'C',x:a5[2].x,y:a5[2].y},
+      {idx:9,sym:'C',x:a5[3].x,y:a5[3].y},
+    ];
+    return {atoms,bonds:[
+      {i:0,j:1,order:2},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:3,j:4,order:1},
+      {i:4,j:5,order:2},{i:5,j:6,order:1},{i:6,j:0,order:2},
+      {i:0,j:7,order:1},{i:7,j:8,order:2},{i:8,j:9,order:1},{i:9,j:6,order:1},
+    ]};
+  },
+
+  'adamantane': L => {
+    // adamantane: cage structure drawn in 2D projection
+    const H=L*0.866;
+    return {atoms:[
+      {idx:0,sym:'C',x:0,    y:-L*1.2},
+      {idx:1,sym:'C',x:-H,   y:-L*0.2},
+      {idx:2,sym:'C',x: H,   y:-L*0.2},
+      {idx:3,sym:'C',x:0,    y: L*0.6},
+      {idx:4,sym:'C',x:-H*2, y: L*0.8},
+      {idx:5,sym:'C',x: H*2, y: L*0.8},
+      {idx:6,sym:'C',x:0,    y: L*1.8},
+      {idx:7,sym:'C',x:-H,   y: L*2.5},
+      {idx:8,sym:'C',x: H,   y: L*2.5},
+      {idx:9,sym:'C',x:0,    y: L*3.2},
+    ],bonds:[
+      {i:0,j:1,order:1},{i:0,j:2,order:1},{i:1,j:3,order:1},{i:2,j:3,order:1},
+      {i:1,j:4,order:1},{i:2,j:5,order:1},{i:3,j:6,order:1},
+      {i:4,j:7,order:1},{i:5,j:8,order:1},{i:6,j:7,order:1},{i:6,j:8,order:1},
+      {i:7,j:9,order:1},{i:8,j:9,order:1},
+    ]};
+  },
+
+  // ── More heterocycles ────────────────────────────────────────
+  'pyridazine': L => mkRing(6,['N','N','C','C','C','C'],0,0,L,-Math.PI/2,true),
+  'triazine':   L => mkRing(6,['N','C','N','C','N','C'],0,0,L,-Math.PI/2,true),
+  'isoxazole':  L => mkRing(5,['O','N','C','C','C'],0,0,L*0.851,-Math.PI/2,true),
+  'thiazole':   L => mkRing(5,['S','C','N','C','C'],0,0,L*0.851,-Math.PI/2,true),
+
+  'benzimidazole': L => {
+    const H=L*0.866;
+    const atoms=[
+      {idx:0,sym:'C',x:0,   y:-L/2},{idx:1,sym:'C',x:0,   y: L/2},
+      {idx:2,sym:'C',x:-H,  y:-L},  {idx:3,sym:'C',x:-2*H,y:-L/2},
+      {idx:4,sym:'C',x:-2*H,y: L/2},{idx:5,sym:'C',x:-H,  y: L},
+      {idx:6,sym:'N',x: H,  y:-L},  {idx:7,sym:'C',x: 2*H,y: 0},
+      {idx:8,sym:'N',x: H,  y: L},
+    ];
+    return {atoms,bonds:[
+      {i:0,j:1,order:1},
+      {i:0,j:2,order:2},{i:2,j:3,order:1},{i:3,j:4,order:2},{i:4,j:5,order:1},{i:5,j:1,order:2},
+      {i:0,j:6,order:1},{i:6,j:7,order:2},{i:7,j:8,order:1},{i:8,j:1,order:1},
+    ]};
+  },
+
+  'quinoline': L => {
+    const H=L*0.866;
+    const atoms=[
+      {idx:0,sym:'C',x:0,   y:-L/2},{idx:1,sym:'C',x:0,   y: L/2},
+      {idx:2,sym:'C',x:-H,  y:-L},  {idx:3,sym:'C',x:-2*H,y:-L/2},
+      {idx:4,sym:'C',x:-2*H,y: L/2},{idx:5,sym:'C',x:-H,  y: L},
+      {idx:6,sym:'C',x: H,  y:-L},  {idx:7,sym:'N',x: 2*H,y:-L/2},
+      {idx:8,sym:'C',x: 2*H,y: L/2},{idx:9,sym:'C',x: H,  y: L},
+    ];
+    return {atoms,bonds:[
+      {i:0,j:1,order:1},
+      {i:0,j:2,order:2},{i:2,j:3,order:1},{i:3,j:4,order:2},{i:4,j:5,order:1},{i:5,j:1,order:2},
+      {i:0,j:6,order:2},{i:6,j:7,order:1},{i:7,j:8,order:2},{i:8,j:9,order:1},{i:9,j:1,order:2},
+    ]};
+  },
+
+  'isoquinoline': L => {
+    const H=L*0.866;
+    const atoms=[
+      {idx:0,sym:'C',x:0,   y:-L/2},{idx:1,sym:'C',x:0,   y: L/2},
+      {idx:2,sym:'C',x:-H,  y:-L},  {idx:3,sym:'C',x:-2*H,y:-L/2},
+      {idx:4,sym:'C',x:-2*H,y: L/2},{idx:5,sym:'C',x:-H,  y: L},
+      {idx:6,sym:'N',x: H,  y:-L},  {idx:7,sym:'C',x: 2*H,y:-L/2},
+      {idx:8,sym:'C',x: 2*H,y: L/2},{idx:9,sym:'C',x: H,  y: L},
+    ];
+    return {atoms,bonds:[
+      {i:0,j:1,order:1},
+      {i:0,j:2,order:2},{i:2,j:3,order:1},{i:3,j:4,order:2},{i:4,j:5,order:1},{i:5,j:1,order:2},
+      {i:0,j:6,order:1},{i:6,j:7,order:2},{i:7,j:8,order:1},{i:8,j:9,order:2},{i:9,j:1,order:1},
+    ]};
+  },
+
+  'purine': L => {
+    const s=L;
+    return {atoms:[
+      {idx:0,sym:'N',x:-s,      y:0},
+      {idx:1,sym:'C',x:-s*0.5,  y:s*0.866},
+      {idx:2,sym:'N',x: s*0.5,  y:s*0.866},
+      {idx:3,sym:'C',x: s,      y:0},
+      {idx:4,sym:'C',x: s*0.5,  y:-s*0.866},
+      {idx:5,sym:'C',x:-s*0.5,  y:-s*0.866},
+      {idx:6,sym:'N',x: s*1.978,y:-s*0.207},
+      {idx:7,sym:'C',x: s*2.083,y:-s*1.203},
+      {idx:8,sym:'N',x: s*1.169,y:-s*1.609},
+    ],bonds:[
+      {i:0,j:1,order:2},{i:1,j:2,order:1},{i:2,j:3,order:2},
+      {i:3,j:4,order:1},{i:4,j:5,order:2},{i:5,j:0,order:1},
+      {i:3,j:6,order:1},{i:6,j:7,order:2},{i:7,j:8,order:1},{i:8,j:4,order:1},
+    ]};
+  },
+
+  'porphyrin': L => {
+    // Simplified porphyrin: 4 pyrrole rings connected by methine bridges around a center
+    const R=L*2.5;
+    const atoms=[], bonds=[];
+    let idx=0;
+    const pyrroleAngles=[0,Math.PI/2,Math.PI,3*Math.PI/2]; // 4 positions
+    const bridgeN=[];
+    pyrroleAngles.forEach((pa,pi)=>{
+      const cx=Math.cos(pa)*R, cy=Math.sin(pa)*R;
+      // pyrrole N at center of each unit
+      atoms.push({idx:idx,sym:'N',x:cx,y:cy});
+      const ni=idx++;
+      // 4 C atoms around each N
+      for(let i=0;i<4;i++){
+        const a=pa+(-0.6+i*0.4);
+        atoms.push({idx:idx,sym:'C',x:cx+Math.cos(a)*L,y:cy+Math.sin(a)*L});
+        idx++;
+      }
+      bridgeN.push(ni);
+    });
+    // internal bonds for each pyrrole: N + 4 C in ring
+    for(let pi=0;pi<4;pi++){
+      const base=pi*5;
+      bonds.push({i:base,j:base+1,order:1},{i:base+1,j:base+2,order:2},
+                 {i:base+2,j:base,order:1},{i:base,j:base+3,order:1},
+                 {i:base+3,j:base+4,order:2},{i:base+4,j:base,order:1});
+    }
+    // methine bridges between pyrroles: C4 of ring0 to C1 of ring1, etc.
+    // (outermost C of each ring toward next ring)
+    // skip detailed bridge atoms for simplicity; use meso bridge carbons
+    const mesoCx=[Math.cos(Math.PI/4)*R,Math.cos(3*Math.PI/4)*R,Math.cos(5*Math.PI/4)*R,Math.cos(7*Math.PI/4)*R];
+    const mesoCy=[Math.sin(Math.PI/4)*R,Math.sin(3*Math.PI/4)*R,Math.sin(5*Math.PI/4)*R,Math.sin(7*Math.PI/4)*R];
+    mesoCx.forEach((mx,mi)=>{
+      atoms.push({idx:idx,sym:'C',x:mx,y:mesoCy[mi]});
+      idx++;
+    });
+    // connect meso C to adjacent pyrrole outer C
+    // pyrrole 0 outer C = idx 4 (base+4) and base+2; meso at idx 20,21,22,23
+    bonds.push(
+      {i:4, j:20,order:1},{i:20,j:6, order:1},
+      {i:9, j:21,order:1},{i:21,j:11,order:1},
+      {i:14,j:22,order:1},{i:22,j:16,order:1},
+      {i:19,j:23,order:1},{i:23,j:1, order:1},
+    );
+    return {atoms,bonds};
+  },
+
+  // ── Remaining amino acids ────────────────────────────────────
+  'leucine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'C',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'C',x:0,y:-L*2.732},{idx:8,sym:'C',x:L,y:-L*2.732},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:6,j:7,order:1},{i:6,j:8,order:1}]
+  }),
+
+  'isoleucine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'C',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'C',x:0,y:-L*2.732},{idx:8,sym:'C',x:L,y:-L},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:6,j:7,order:1},{i:5,j:8,order:1}]
+  }),
+
+  'threonine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'O',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'C',x:-L*0.5,y:-L*1.866},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:5,j:7,order:1}]
+  }),
+
+  'asparagine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'C',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'O',x:L*1.5,y:-L*1.866},{idx:8,sym:'N',x:0,y:-L*2.732},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:6,j:7,order:2},{i:6,j:8,order:1}]
+  }),
+
+  'glutamine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'C',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'C',x:0,y:-L*2.732},{idx:8,sym:'O',x:L,y:-L*2.732},{idx:9,sym:'N',x:-L*0.5,y:-L*3.598},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:6,j:7,order:1},{i:7,j:8,order:2},{i:7,j:9,order:1}]
+  }),
+
+  'arginine': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'C',x:L,y:0},
+      {idx:3,sym:'O',x:L*1.5,y:-L*0.866},{idx:4,sym:'O',x:L*1.5,y:L*0.866},
+      {idx:5,sym:'C',x:0,y:-L},{idx:6,sym:'C',x:L*0.5,y:-L*1.866},
+      {idx:7,sym:'C',x:0,y:-L*2.732},{idx:8,sym:'N',x:L*0.5,y:-L*3.598},
+      {idx:9,sym:'C',x:0,y:-L*4.464},{idx:10,sym:'N',x:L,y:-L*4.464},
+      {idx:11,sym:'N',x:-L*0.5,y:-L*5.33},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:2,j:4,order:1},
+           {i:1,j:5,order:1},{i:5,j:6,order:1},{i:6,j:7,order:1},{i:7,j:8,order:1},
+           {i:8,j:9,order:1},{i:9,j:10,order:1},{i:9,j:11,order:2}]
+  }),
+
+  // ── More sugars ──────────────────────────────────────────────
+  'galactose': L => {
+    const H=L*0.866;
+    const syms=['O','C','C','C','C','C'];
+    const ring=mkRing(6,syms,0,0,L,-Math.PI/2,false);
+    const extra=[
+      {idx:6,sym:'O',x:ring.atoms[1].x+H,y:ring.atoms[1].y},
+      {idx:7,sym:'O',x:ring.atoms[2].x-H,y:ring.atoms[2].y}, // axial OH at C2 differs from glucose
+      {idx:8,sym:'O',x:ring.atoms[3].x-H,y:ring.atoms[3].y},
+      {idx:9,sym:'O',x:ring.atoms[4].x+H,y:ring.atoms[4].y}, // axial OH at C4 (galactose)
+      {idx:10,sym:'C',x:ring.atoms[5].x+H,y:ring.atoms[5].y},
+      {idx:11,sym:'O',x:ring.atoms[5].x+2*H,y:ring.atoms[5].y},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:1,j:6,order:1},{i:2,j:7,order:1},{i:3,j:8,order:1},
+                   {i:4,j:9,order:1},{i:5,j:10,order:1},{i:10,j:11,order:1}]};
+  },
+
+  'fructose': L => {
+    // β-D-fructofuranose
+    const H=L*0.866;
+    const syms=['O','C','C','C','C'];
+    const ring=mkRing(5,syms,0,0,L*0.851,-Math.PI/2,false);
+    const extra=[
+      {idx:5,sym:'C',x:ring.atoms[1].x-H,y:ring.atoms[1].y},
+      {idx:6,sym:'O',x:ring.atoms[1].x-2*H,y:ring.atoms[1].y},
+      {idx:7,sym:'O',x:ring.atoms[2].x+H,y:ring.atoms[2].y},
+      {idx:8,sym:'O',x:ring.atoms[3].x-H,y:ring.atoms[3].y},
+      {idx:9,sym:'C',x:ring.atoms[4].x+H,y:ring.atoms[4].y},
+      {idx:10,sym:'O',x:ring.atoms[4].x+2*H,y:ring.atoms[4].y},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:1,j:5,order:1},{i:5,j:6,order:1},{i:2,j:7,order:1},
+                   {i:3,j:8,order:1},{i:4,j:9,order:1},{i:9,j:10,order:1}]};
+  },
+
+  'mannose': L => {
+    const H=L*0.866;
+    const syms=['O','C','C','C','C','C'];
+    const ring=mkRing(6,syms,0,0,L,-Math.PI/2,false);
+    const extra=[
+      {idx:6,sym:'O',x:ring.atoms[1].x+H,y:ring.atoms[1].y},
+      {idx:7,sym:'O',x:ring.atoms[2].x+H,y:ring.atoms[2].y}, // axial at C2
+      {idx:8,sym:'O',x:ring.atoms[3].x-H,y:ring.atoms[3].y},
+      {idx:9,sym:'O',x:ring.atoms[4].x-H,y:ring.atoms[4].y},
+      {idx:10,sym:'C',x:ring.atoms[5].x+H,y:ring.atoms[5].y},
+      {idx:11,sym:'O',x:ring.atoms[5].x+2*H,y:ring.atoms[5].y},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:1,j:6,order:1},{i:2,j:7,order:1},{i:3,j:8,order:1},
+                   {i:4,j:9,order:1},{i:5,j:10,order:1},{i:10,j:11,order:1}]};
+  },
+
+  'deoxyribose': L => {
+    const H=L*0.866;
+    const syms=['O','C','C','C','C'];
+    const ring=mkRing(5,syms,0,0,L*0.851,-Math.PI/2,false);
+    const extra=[
+      // C2 has no OH (deoxy)
+      {idx:5,sym:'O',x:ring.atoms[2].x+H,y:ring.atoms[2].y}, // C3-OH
+      {idx:6,sym:'C',x:ring.atoms[4].x+H,y:ring.atoms[4].y},
+      {idx:7,sym:'O',x:ring.atoms[4].x+2*H,y:ring.atoms[4].y},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:2,j:5,order:1},{i:4,j:6,order:1},{i:6,j:7,order:1}]};
+  },
+
+  'glucosamine': L => {
+    const H=L*0.866;
+    const syms=['O','C','C','C','C','C'];
+    const ring=mkRing(6,syms,0,0,L,-Math.PI/2,false);
+    const extra=[
+      {idx:6,sym:'O',x:ring.atoms[1].x+H,y:ring.atoms[1].y},
+      {idx:7,sym:'N',x:ring.atoms[2].x+H,y:ring.atoms[2].y}, // NH2 at C2
+      {idx:8,sym:'O',x:ring.atoms[3].x-H,y:ring.atoms[3].y},
+      {idx:9,sym:'O',x:ring.atoms[4].x-H,y:ring.atoms[4].y},
+      {idx:10,sym:'C',x:ring.atoms[5].x+H,y:ring.atoms[5].y},
+      {idx:11,sym:'O',x:ring.atoms[5].x+2*H,y:ring.atoms[5].y},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:1,j:6,order:1},{i:2,j:7,order:1},{i:3,j:8,order:1},
+                   {i:4,j:9,order:1},{i:5,j:10,order:1},{i:10,j:11,order:1}]};
+  },
+
+  'glucuronic': L => {
+    const H=L*0.866;
+    const syms=['O','C','C','C','C','C'];
+    const ring=mkRing(6,syms,0,0,L,-Math.PI/2,false);
+    const extra=[
+      {idx:6,sym:'O',x:ring.atoms[1].x+H,y:ring.atoms[1].y},
+      {idx:7,sym:'O',x:ring.atoms[2].x+H,y:ring.atoms[2].y},
+      {idx:8,sym:'O',x:ring.atoms[3].x-H,y:ring.atoms[3].y},
+      {idx:9,sym:'O',x:ring.atoms[4].x-H,y:ring.atoms[4].y},
+      // C6 → COOH instead of CH2OH
+      {idx:10,sym:'C',x:ring.atoms[5].x+H,y:ring.atoms[5].y},
+      {idx:11,sym:'O',x:ring.atoms[5].x+2*H,y:ring.atoms[5].y-H},
+      {idx:12,sym:'O',x:ring.atoms[5].x+2*H,y:ring.atoms[5].y+H},
+    ];
+    return {atoms:[...ring.atoms,...extra],
+            bonds:[...ring.bonds,{i:1,j:6,order:1},{i:2,j:7,order:1},{i:3,j:8,order:1},
+                   {i:4,j:9,order:1},{i:5,j:10,order:1},{i:10,j:11,order:2},{i:10,j:12,order:1}]};
+  },
+
+  // ── Cofactors ────────────────────────────────────────────────
+  'GTP': L => {
+    const gu=TEMPLATES['guanine'](L);
+    gu.atoms.forEach(a=>{a.y-=L*3;});
+    const base_y=(gu.atoms.find(a=>a.idx===8)||{y:0}).y;
+    const base_x=(gu.atoms.find(a=>a.idx===8)||{x:0}).x;
+    return {
+      atoms:[...gu.atoms,
+        {idx:20,sym:'C',x:base_x,     y:base_y+L},
+        {idx:21,sym:'C',x:base_x+L*0.5,y:base_y+L*1.866},
+        {idx:22,sym:'O',x:base_x+L*1.5,y:base_y+L*1.866},
+        {idx:23,sym:'C',x:base_x+L,   y:base_y+L*2.732},
+        {idx:24,sym:'C',x:base_x,     y:base_y+L*2.732},
+        {idx:25,sym:'O',x:base_x-L*0.5,y:base_y+L*3.6},
+        {idx:30,sym:'P',x:base_x-L*1.5,y:base_y+L*3.6},
+        {idx:31,sym:'O',x:base_x-L*1.5,y:base_y+L*4.5},
+        {idx:32,sym:'O',x:base_x-L*2.4,y:base_y+L*3.1},
+        {idx:33,sym:'P',x:base_x-L*2.5,y:base_y+L*3.6},
+        {idx:34,sym:'O',x:base_x-L*2.5,y:base_y+L*4.5},
+        {idx:35,sym:'O',x:base_x-L*3.4,y:base_y+L*3.1},
+        {idx:36,sym:'P',x:base_x-L*3.5,y:base_y+L*3.6},
+        {idx:37,sym:'O',x:base_x-L*3.5,y:base_y+L*4.5},
+        {idx:38,sym:'O',x:base_x-L*4.4,y:base_y+L*3.1},
+        {idx:39,sym:'O',x:base_x-L*3.5,y:base_y+L*2.7},
+      ],
+      bonds:[...gu.bonds,
+        {i:8,j:20,order:1},{i:20,j:21,order:1},{i:21,j:22,order:1},
+        {i:22,j:23,order:1},{i:23,j:24,order:1},{i:24,j:20,order:1},
+        {i:24,j:25,order:1},
+        {i:25,j:30,order:1},{i:30,j:31,order:2},{i:30,j:32,order:1},
+        {i:30,j:33,order:1},{i:33,j:34,order:2},{i:33,j:35,order:1},
+        {i:33,j:36,order:1},{i:36,j:37,order:2},{i:36,j:38,order:1},{i:36,j:39,order:1},
+      ]
+    };
+  },
+
+  // NAD+ nicotinamide ring + adenine + 2 ribose + 2 phosphate
+  'NAD': L => {
+    const ad=TEMPLATES['adenine'](L);
+    ad.atoms.forEach(a=>{a.x-=L*6; a.y-=L*2;});
+    // Nicotinamide ring (pyridinium)
+    const nic=mkRing(6,['N','C','C','C','C','C'],L*2,0,L,-Math.PI/2,true);
+    // amide at C3
+    const amide=[
+      {idx:50,sym:'C',x:L*2+L*1.5,y:L*0.866},
+      {idx:51,sym:'O',x:L*2+L*2.5,y:L*0.866},
+      {idx:52,sym:'N',x:L*2+L*1.5,y:L*1.866},
+    ];
+    // phosphate bridge (simplified)
+    const bridge=[
+      {idx:60,sym:'P',x:-L*0.5,y:L*1.5},{idx:61,sym:'O',x:-L*0.5,y:L*2.5},
+      {idx:62,sym:'O',x:-L*1.5,y:L*1.5},
+      {idx:63,sym:'P',x: L*0.5,y:L*1.5},{idx:64,sym:'O',x: L*0.5,y:L*2.5},
+      {idx:65,sym:'O',x: L*1.5,y:L*1.5},
+    ];
+    return {
+      atoms:[...ad.atoms,...nic.atoms,...amide,...bridge],
+      bonds:[...ad.bonds,...nic.bonds,
+        {i:2,j:50,order:1},{i:50,j:51,order:2},{i:50,j:52,order:1},
+        {i:60,j:61,order:2},{i:60,j:62,order:1},{i:60,j:63,order:1},
+        {i:63,j:64,order:2},{i:63,j:65,order:1},
+      ]
+    };
+  },
+
+  'NADH': L => {
+    // Same as NAD but nicotinamide ring is reduced (no + charge, different bond orders)
+    const nad=TEMPLATES['NAD'](L);
+    // Just label it the same; mark ring as reduced (all single bonds in nicotinamide)
+    nad.bonds.forEach(b=>{
+      const inNic=b.i>=6&&b.i<12&&b.j>=6&&b.j<12;
+      if(inNic) b.order=1;
+    });
+    return nad;
+  },
+
+  // FAD: isoalloxazine + ribitol + AMP
+  'FAD': L => {
+    // Isoalloxazine ring system (simplified)
+    const H=L*0.866;
+    const isoAtoms=[
+      // benzene ring part
+      {idx:0,sym:'C',x:0,y:0},{idx:1,sym:'C',x:0,y:L},{idx:2,sym:'C',x:-H,y:L*1.5},
+      {idx:3,sym:'C',x:-2*H,y:L},{idx:4,sym:'C',x:-2*H,y:0},{idx:5,sym:'C',x:-H,y:-L*0.5},
+      // pyrimidine ring part
+      {idx:6,sym:'N',x:H,y:-L*0.5},{idx:7,sym:'C',x:H*2,y:0},{idx:8,sym:'N',x:H*2,y:L},
+      {idx:9,sym:'C',x:H,y:L*1.5},
+      // middle ring
+      {idx:10,sym:'O',x:H*3,y:-L*0.5},{idx:11,sym:'O',x:H*3,y:L*1.5},
+      // ribitol chain
+      {idx:12,sym:'N',x:0,y:-L},{idx:13,sym:'C',x:0,y:-L*2},{idx:14,sym:'C',x:L*0.5,y:-L*2.866},
+      {idx:15,sym:'C',x:0,y:-L*3.732},{idx:16,sym:'C',x:L*0.5,y:-L*4.598},
+      {idx:17,sym:'O',x:L*1.5,y:-L*2.866},{idx:18,sym:'O',x:L,y:-L*3.732},
+      {idx:19,sym:'O',x:L*1.5,y:-L*4.598},
+    ];
+    return {atoms:isoAtoms,bonds:[
+      {i:0,j:1,order:2},{i:1,j:2,order:1},{i:2,j:3,order:2},{i:3,j:4,order:1},{i:4,j:5,order:2},{i:5,j:0,order:1},
+      {i:0,j:6,order:1},{i:6,j:7,order:1},{i:7,j:8,order:1},{i:8,j:9,order:1},{i:9,j:1,order:1},
+      {i:7,j:10,order:2},{i:8,j:11,order:2},
+      {i:5,j:12,order:1},{i:12,j:13,order:1},{i:13,j:14,order:1},{i:14,j:15,order:1},
+      {i:15,j:16,order:1},{i:14,j:17,order:1},{i:15,j:18,order:1},{i:16,j:19,order:1},
+    ]};
+  },
+
+  // CoA simplified: pantothenic acid + cysteamine + phosphate
+  'CoA': L => ({
+    atoms:[
+      {idx:0,sym:'S',x:0,y:0},
+      {idx:1,sym:'C',x:L,y:0},{idx:2,sym:'C',x:L*2,y:0},
+      {idx:3,sym:'N',x:L*2.5,y:-L*0.866},
+      {idx:4,sym:'C',x:L*3.5,y:-L*0.866},{idx:5,sym:'O',x:L*4,y:0},
+      {idx:6,sym:'C',x:L*4,y:-L*1.732},{idx:7,sym:'C',x:L*5,y:-L*1.732},
+      {idx:8,sym:'C',x:L*5,y:-L*0.732},{idx:9,sym:'N',x:L*5.5,y:L*0.134},
+      {idx:10,sym:'C',x:L*6.5,y:L*0.134},
+      {idx:11,sym:'O',x:L*7,y:-L*0.732},{idx:12,sym:'O',x:L*7,y:L},
+      {idx:13,sym:'P',x:L*8,y:L*0.134},
+      {idx:14,sym:'O',x:L*8,y:L*1.134},{idx:15,sym:'O',x:L*9,y:L*0.134},
+      {idx:16,sym:'O',x:L*8,y:-L*0.866},
+    ],
+    bonds:[
+      {i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:1},
+      {i:3,j:4,order:1},{i:4,j:5,order:2},{i:4,j:6,order:1},
+      {i:6,j:7,order:1},{i:7,j:8,order:1},{i:8,j:9,order:1},
+      {i:9,j:10,order:1},{i:10,j:11,order:2},{i:10,j:12,order:1},
+      {i:12,j:13,order:1},{i:13,j:14,order:2},{i:13,j:15,order:1},{i:13,j:16,order:1},
+    ]
+  }),
+
+  'heme': L => {
+    // Iron protoporphyrin IX — 4 pyrrole rings + Fe center
+    const R=L*2.5, r=L*0.9;
+    const atoms=[], bonds=[];
+    let idx=0;
+    // 4 N atoms for Fe coordination
+    const Npos=[[0,-R],[R,0],[0,R],[-R,0]];
+    const FeIdx=0;
+    atoms.push({idx:idx++,sym:'Fe',x:0,y:0});
+    Npos.forEach(([nx,ny])=>{
+      const ni=idx;
+      atoms.push({idx:idx++,sym:'N',x:nx,y:ny});
+      bonds.push({i:FeIdx,j:ni,order:1});
+      // 4 C atoms around each N
+      const angle=Math.atan2(ny,nx);
+      for(let i=0;i<4;i++){
+        const a=angle+(-0.65+i*0.43);
+        atoms.push({idx:idx++,sym:'C',x:nx+Math.cos(a)*r,y:ny+Math.sin(a)*r});
+      }
+    });
+    // pyrrole ring bonds
+    for(let pi=0;pi<4;pi++){
+      const base=1+pi*5;
+      const N=base, C1=base+1, C2=base+2, C3=base+3, C4=base+4;
+      bonds.push({i:N,j:C1,order:1},{i:C1,j:C2,order:2},{i:C2,j:N,order:1},
+                 {i:N,j:C3,order:1},{i:C3,j:C4,order:2},{i:C4,j:N,order:1});
+    }
+    // meso bridges between outer carbons of adjacent pyrroles
+    const outer=[[3,6],[8,11],[13,16],[18,1+4]];
+    outer.forEach(([a,b],i)=>{
+      const mi=idx;
+      const ax=atoms[a].x, ay=atoms[a].y, bx=atoms[b]?.x||atoms[1].x, by=atoms[b]?.y||atoms[1].y;
+      atoms.push({idx:idx++,sym:'C',x:(ax+bx)/2,y:(ay+by)/2});
+      bonds.push({i:a,j:mi,order:1},{i:mi,j:b||1,order:1});
+    });
+    return {atoms,bonds};
+  },
+
+  'cAMP': L => {
+    // cyclic AMP: adenine + ribose with 3',5'-cyclic phosphate
+    const ad=TEMPLATES['adenine'](L);
+    ad.atoms.forEach(a=>{a.y-=L*3;});
+    const N9=ad.atoms.find(a=>a.idx===8);
+    const bx=N9?N9.x:0, by=N9?N9.y:0;
+    return {
+      atoms:[...ad.atoms,
+        {idx:20,sym:'C',x:bx,       y:by+L},
+        {idx:21,sym:'C',x:bx+L*0.5, y:by+L*1.866},
+        {idx:22,sym:'O',x:bx+L*1.5, y:by+L*1.866},
+        {idx:23,sym:'C',x:bx+L,     y:by+L*2.732},
+        {idx:24,sym:'C',x:bx,       y:by+L*2.732},
+        {idx:25,sym:'O',x:bx-L*0.5, y:by+L*3.6},
+        {idx:26,sym:'P',x:bx-L*1.5, y:by+L*3.6},
+        {idx:27,sym:'O',x:bx-L*1.5, y:by+L*4.5},
+        {idx:28,sym:'O',x:bx+L*0.5, y:by+L*3.6}, // 5' O closing ring
+      ],
+      bonds:[...ad.bonds,
+        {i:8,j:20,order:1},{i:20,j:21,order:1},{i:21,j:22,order:1},
+        {i:22,j:23,order:1},{i:23,j:24,order:1},{i:24,j:20,order:1},
+        // cyclic phosphate
+        {i:24,j:25,order:1},{i:25,j:26,order:1},{i:26,j:27,order:2},
+        {i:26,j:28,order:1},{i:28,j:22,order:1},
+      ]
+    };
+  },
+
+  // ── Lipids / Steroids ────────────────────────────────────────
+  'steroid': L => {
+    // Gonane skeleton: 3 cyclohexane + 1 cyclopentane fused
+    const H=L*0.866;
+    const atoms=[
+      // Ring A (left hex)
+      {idx:0,sym:'C',x:0,    y:-L/2},{idx:1,sym:'C',x:0,    y: L/2},
+      {idx:2,sym:'C',x:-H,   y:-L},  {idx:3,sym:'C',x:-2*H, y:-L/2},
+      {idx:4,sym:'C',x:-2*H, y: L/2},{idx:5,sym:'C',x:-H,   y: L},
+      // Ring B (middle hex)
+      {idx:6,sym:'C',x: H,   y:-L},  {idx:7,sym:'C',x: 2*H, y:-L/2},
+      {idx:8,sym:'C',x: 2*H, y: L/2},{idx:9,sym:'C',x: H,   y: L},
+      // Ring C (right hex)
+      {idx:10,sym:'C',x: 3*H, y:-L},{idx:11,sym:'C',x: 4*H, y:-L/2},
+      {idx:12,sym:'C',x: 4*H, y: L/2},{idx:13,sym:'C',x: 3*H, y: L},
+      // Ring D (right pentagon fused to C)
+      {idx:14,sym:'C',x: 5*H,   y: 0},
+      {idx:15,sym:'C',x: 5*H+L*0.588, y:-L*0.809},
+      {idx:16,sym:'C',x: 5*H+L*0.951, y: 0},
+    ];
+    return {atoms,bonds:[
+      {i:0,j:1,order:1},
+      {i:0,j:2,order:1},{i:2,j:3,order:1},{i:3,j:4,order:1},{i:4,j:5,order:1},{i:5,j:1,order:1},
+      {i:0,j:6,order:1},{i:6,j:7,order:1},{i:7,j:8,order:1},{i:8,j:9,order:1},{i:9,j:1,order:1},
+      {i:7,j:10,order:1},{i:10,j:11,order:1},{i:11,j:12,order:1},{i:12,j:13,order:1},{i:13,j:8,order:1},
+      {i:11,j:14,order:1},{i:14,j:15,order:1},{i:15,j:16,order:1},{i:16,j:12,order:1},
+    ]};
+  },
+
+  'cholesterol-ring': L => {
+    const base=TEMPLATES['steroid'](L);
+    // Add OH at C3 (atom 4) and double bond at C5-C6 (atoms 0-6)
+    const extra=[{idx:20,sym:'O',x:base.atoms[4].x-L*0.866,y:base.atoms[4].y}];
+    base.atoms.push(...extra);
+    base.bonds.push({i:4,j:20,order:1});
+    // make ring A/B junction double bond
+    const b=base.bonds.find(b=>b.i===0&&b.j===6||b.i===6&&b.j===0);
+    if(b) b.order=2;
+    return base;
+  },
+
+  'fatty-acid': L => {
+    // Palmitic acid (C16) as zig-zag chain
+    const atoms=[], bonds=[];
+    const n=16;
+    for(let i=0;i<n;i++){
+      const x=i*L*Math.cos(Math.PI/6), y=i%2===0?0:L*Math.sin(Math.PI/6);
+      atoms.push({idx:i,sym:'C',x,y});
+      if(i>0) bonds.push({i:i-1,j:i,order:1});
+    }
+    // carboxyl at C1 (idx 0)
+    atoms.push({idx:n,sym:'O',x:-L*0.5,y:-L*0.866},{idx:n+1,sym:'O',x:-L*0.5,y:L*0.866});
+    bonds.push({i:0,j:n,order:2},{i:0,j:n+1,order:1});
+    return {atoms,bonds};
+  },
+
+  'glycerol': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:0,y:0},{idx:1,sym:'C',x:0,y:-L},{idx:2,sym:'C',x:0,y:L},
+      {idx:3,sym:'O',x:L,y:0},{idx:4,sym:'O',x:L,y:-L},{idx:5,sym:'O',x:L,y:L},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:0,j:2,order:1},
+           {i:0,j:3,order:1},{i:1,j:4,order:1},{i:2,j:5,order:1}]
+  }),
+
+  // ── More functional groups ───────────────────────────────────
+  'ester': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},
+      {idx:2,sym:'O',x:L*0.5,y:-L*0.866},{idx:3,sym:'O',x:L*0.5,y:L*0.866},
+      {idx:4,sym:'C',x:L*1.5,y:L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2},{i:1,j:3,order:1},{i:3,j:4,order:1}]
+  }),
+
+  'amide': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},
+      {idx:2,sym:'O',x:L*0.5,y:-L*0.866},{idx:3,sym:'N',x:L*0.5,y:L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2},{i:1,j:3,order:1}]
+  }),
+
+  'aldehyde': L => ({
+    atoms:[{idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'O',x:L,y:0}],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2}]
+  }),
+
+  'ketone': L => ({
+    atoms:[{idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'O',x:0,y:-L},{idx:3,sym:'C',x:L,y:0}],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2},{i:1,j:3,order:1}]
+  }),
+
+  'sulfonyl': L => ({
+    atoms:[
+      {idx:0,sym:'S',x:0,y:0},
+      {idx:1,sym:'O',x:0,y:-L},{idx:2,sym:'O',x:0,y:L},
+    ],
+    bonds:[{i:0,j:1,order:2},{i:0,j:2,order:2}]
+  }),
+
+  'nitrile': L => ({
+    atoms:[{idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},{idx:2,sym:'N',x:L,y:0}],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:3}]
+  }),
+
+  'nitro': L => ({
+    atoms:[
+      {idx:0,sym:'N',x:0,y:0},{idx:1,sym:'O',x:L*0.5,y:-L*0.866},{idx:2,sym:'O',x:L*0.5,y:L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:2},{i:0,j:2,order:1}]
+  }),
+
+  'epoxide': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:-L*0.5,y:0},{idx:1,sym:'C',x:L*0.5,y:0},{idx:2,sym:'O',x:0,y:-L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:0,j:2,order:1},{i:1,j:2,order:1}]
+  }),
+
+  'lactam': L => ({
+    // β-lactam (4-membered ring with N and C=O)
+    atoms:[
+      {idx:0,sym:'N',x:0,y:0},{idx:1,sym:'C',x:L,y:0},
+      {idx:2,sym:'C',x:L,y:L},{idx:3,sym:'C',x:0,y:L},
+      {idx:4,sym:'O',x:L*1.866,y:L*0.5},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:1},{i:3,j:0,order:1},{i:1,j:4,order:2}]
+  }),
+
+  // ── Drug / bioactive molecules ───────────────────────────────
+  'aspirin': L => {
+    const benz=mkRing(6,Array(6).fill('C'),0,0,L,-Math.PI/2,true);
+    // C1: idx0 → OCOCH3 (acetyloxy)
+    // C2: idx1 → COOH
+    const extra=[
+      {idx:6, sym:'O',x:benz.atoms[0].x+L*0.866,y:benz.atoms[0].y-L*0.5},
+      {idx:7, sym:'C',x:benz.atoms[0].x+L*1.732,y:benz.atoms[0].y-L},
+      {idx:8, sym:'O',x:benz.atoms[0].x+L*2.598,y:benz.atoms[0].y-L*0.5},
+      {idx:9, sym:'C',x:benz.atoms[0].x+L*1.732,y:benz.atoms[0].y-L*2},
+      // COOH at C2 (idx1)
+      {idx:10,sym:'C',x:benz.atoms[1].x+L*0.866,y:benz.atoms[1].y-L*0.5},
+      {idx:11,sym:'O',x:benz.atoms[1].x+L*1.732,y:benz.atoms[1].y},
+      {idx:12,sym:'O',x:benz.atoms[1].x+L*1.732,y:benz.atoms[1].y-L},
+    ];
+    return {atoms:[...benz.atoms,...extra],bonds:[...benz.bonds,
+      {i:0,j:6,order:1},{i:6,j:7,order:1},{i:7,j:8,order:2},{i:7,j:9,order:1},
+      {i:1,j:10,order:1},{i:10,j:11,order:1},{i:10,j:12,order:2},
+    ]};
+  },
+
+  'caffeine': L => {
+    // 1,3,7-trimethylxanthine = methylated purine with two keto groups
+    const s=L;
+    return {atoms:[
+      {idx:0,sym:'N',x:-s,      y:0},
+      {idx:1,sym:'C',x:-s*0.5,  y:s*0.866},
+      {idx:2,sym:'N',x: s*0.5,  y:s*0.866},
+      {idx:3,sym:'C',x: s,      y:0},
+      {idx:4,sym:'C',x: s*0.5,  y:-s*0.866},
+      {idx:5,sym:'C',x:-s*0.5,  y:-s*0.866},
+      {idx:6,sym:'N',x: s*1.978,y:-s*0.207},
+      {idx:7,sym:'C',x: s*2.083,y:-s*1.203},
+      {idx:8,sym:'N',x: s*1.169,y:-s*1.609},
+      {idx:9,sym:'O',x:-s,      y:s*1.732},  // C2=O
+      {idx:10,sym:'O',x:-s*0.5, y:-s*1.732}, // C6=O
+      {idx:11,sym:'C',x:-s*2,   y:0},         // N1-CH3
+      {idx:12,sym:'C',x: s*0.5, y:s*1.732},  // N3-CH3
+      {idx:13,sym:'C',x: s*1.169,y:-s*2.609},// N7-CH3
+    ],bonds:[
+      {i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:1},
+      {i:3,j:4,order:1},{i:4,j:5,order:1},{i:5,j:0,order:1},
+      {i:3,j:6,order:1},{i:6,j:7,order:2},{i:7,j:8,order:1},{i:8,j:4,order:1},
+      {i:1,j:9,order:2},{i:5,j:10,order:2},
+      {i:0,j:11,order:1},{i:2,j:12,order:1},{i:6,j:13,order:1},
+    ]};
+  },
+
+  'dopamine': L => {
+    const benz=mkRing(6,Array(6).fill('C'),0,0,L,-Math.PI/2,true);
+    // catechol: OH at C3(idx2) and C4(idx3)
+    // side chain at C1(idx0): -CH2-CH2-NH2
+    const H=L*0.866;
+    const extra=[
+      {idx:6,sym:'O',x:benz.atoms[2].x-H,y:benz.atoms[2].y},
+      {idx:7,sym:'O',x:benz.atoms[3].x-H,y:benz.atoms[3].y},
+      {idx:8,sym:'C',x:benz.atoms[0].x+H,y:benz.atoms[0].y-L*0.5},
+      {idx:9,sym:'C',x:benz.atoms[0].x+2*H,y:benz.atoms[0].y-L},
+      {idx:10,sym:'N',x:benz.atoms[0].x+3*H,y:benz.atoms[0].y-L*0.5},
+    ];
+    return {atoms:[...benz.atoms,...extra],bonds:[...benz.bonds,
+      {i:2,j:6,order:1},{i:3,j:7,order:1},
+      {i:0,j:8,order:1},{i:8,j:9,order:1},{i:9,j:10,order:1},
+    ]};
+  },
+
+  'serotonin': L => {
+    const ind=TEMPLATES['indole'](L);
+    const H=L*0.866;
+    // OH at C5 of benzene ring (idx3 in indole), ethylamine at C3 (idx8)
+    const extra=[
+      {idx:10,sym:'O',x:ind.atoms[3].x-H,y:ind.atoms[3].y},
+      {idx:11,sym:'C',x:ind.atoms[8].x+H,y:ind.atoms[8].y+L*0.5},
+      {idx:12,sym:'C',x:ind.atoms[8].x+2*H,y:ind.atoms[8].y+L},
+      {idx:13,sym:'N',x:ind.atoms[8].x+3*H,y:ind.atoms[8].y+L*0.5},
+    ];
+    return {atoms:[...ind.atoms,...extra],bonds:[...ind.bonds,
+      {i:3,j:10,order:1},
+      {i:8,j:11,order:1},{i:11,j:12,order:1},{i:12,j:13,order:1},
+    ]};
+  },
+
+  'adrenaline': L => {
+    const benz=mkRing(6,Array(6).fill('C'),0,0,L,-Math.PI/2,true);
+    const H=L*0.866;
+    const extra=[
+      {idx:6,sym:'O',x:benz.atoms[2].x-H,y:benz.atoms[2].y},
+      {idx:7,sym:'O',x:benz.atoms[3].x-H,y:benz.atoms[3].y},
+      // side chain: -CH(OH)-CH2-NH-CH3
+      {idx:8,sym:'C',x:benz.atoms[0].x+H,y:benz.atoms[0].y-L*0.5},
+      {idx:9,sym:'O',x:benz.atoms[0].x+H,y:benz.atoms[0].y-L*1.5},
+      {idx:10,sym:'C',x:benz.atoms[0].x+2*H,y:benz.atoms[0].y-L},
+      {idx:11,sym:'N',x:benz.atoms[0].x+3*H,y:benz.atoms[0].y-L*0.5},
+      {idx:12,sym:'C',x:benz.atoms[0].x+4*H,y:benz.atoms[0].y-L},
+    ];
+    return {atoms:[...benz.atoms,...extra],bonds:[...benz.bonds,
+      {i:2,j:6,order:1},{i:3,j:7,order:1},
+      {i:0,j:8,order:1},{i:8,j:9,order:1},{i:8,j:10,order:1},
+      {i:10,j:11,order:1},{i:11,j:12,order:1},
+    ]};
+  },
+
+  'penicillin': L => {
+    // β-lactam fused with thiazolidine ring
+    return {atoms:[
+      {idx:0,sym:'N',x:0,y:0},{idx:1,sym:'C',x:L,y:0},
+      {idx:2,sym:'C',x:L,y:L},{idx:3,sym:'C',x:0,y:L},
+      {idx:4,sym:'O',x:L*1.866,y:L*0.5}, // β-lactam C=O
+      // thiazolidine: S, C, C
+      {idx:5,sym:'S',x:-L,y:L},{idx:6,sym:'C',x:-L,y:0},
+      {idx:7,sym:'C',x:-L*0.5,y:L*1.5},
+      // COOH on thiazolidine C
+      {idx:8,sym:'C',x:-L*2,y:0},{idx:9,sym:'O',x:-L*2.5,y:-L*0.866},{idx:10,sym:'O',x:-L*2.5,y:L*0.866},
+    ],bonds:[
+      {i:0,j:1,order:1},{i:1,j:2,order:1},{i:2,j:3,order:1},{i:3,j:0,order:1},{i:1,j:4,order:2},
+      {i:3,j:5,order:1},{i:5,j:6,order:1},{i:6,j:0,order:1},{i:3,j:7,order:1},{i:7,j:5,order:1},
+      {i:6,j:8,order:1},{i:8,j:9,order:2},{i:8,j:10,order:1},
+    ]};
+  },
+
+  'glucose-6p': L => {
+    const gl=TEMPLATES['glucose'](L);
+    // Add phosphate at C6 (atom idx 10 = CH2, bond to O idx11 → replace with phosphate)
+    gl.atoms.push({idx:12,sym:'P',x:gl.atoms[10].x+L*1.866,y:gl.atoms[10].y});
+    gl.atoms.push({idx:13,sym:'O',x:gl.atoms[10].x+L*2.866,y:gl.atoms[10].y-L*0.5});
+    gl.atoms.push({idx:14,sym:'O',x:gl.atoms[10].x+L*2.866,y:gl.atoms[10].y+L*0.5});
+    gl.atoms.push({idx:15,sym:'O',x:gl.atoms[10].x+L*1.866,y:gl.atoms[10].y+L});
+    gl.bonds.push({i:11,j:12,order:1},{i:12,j:13,order:2},{i:12,j:14,order:1},{i:12,j:15,order:1});
+    return gl;
+  },
+
+  'pyruvate': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},
+      {idx:2,sym:'O',x:0,y:-L},{idx:3,sym:'C',x:L,y:0},
+      {idx:4,sym:'O',x:L*1.5,y:-L*0.866},{idx:5,sym:'O',x:L*1.5,y:L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2},{i:1,j:3,order:1},{i:3,j:4,order:2},{i:3,j:5,order:1}]
+  }),
+
+  'acetyl-coa-simple': L => ({
+    // Just show acetyl-S-CoA simplified as CH3-CO-S-
+    atoms:[
+      {idx:0,sym:'C',x:-L,y:0},{idx:1,sym:'C',x:0,y:0},
+      {idx:2,sym:'O',x:0,y:-L},{idx:3,sym:'S',x:L,y:0},
+    ],
+    bonds:[{i:0,j:1,order:1},{i:1,j:2,order:2},{i:1,j:3,order:1}]
+  }),
+
+  'citric-acid': L => ({
+    atoms:[
+      {idx:0,sym:'C',x:0,y:0},
+      {idx:1,sym:'O',x:L*0.5,y:-L*0.866},{idx:2,sym:'O',x:L*0.5,y:L*0.866},
+      {idx:3,sym:'C',x:-L,y:0},
+      {idx:4,sym:'O',x:-L*1.5,y:-L*0.866},{idx:5,sym:'O',x:-L*1.5,y:L*0.866},
+      {idx:6,sym:'C',x:-2*L,y:0},
+      {idx:7,sym:'O',x:-L*2,y:-L},{idx:8,sym:'O',x:-L*3,y:0},
+      {idx:9,sym:'C',x:-3*L,y:0},  // quaternary C
+      {idx:10,sym:'C',x:-4*L,y:0},
+      {idx:11,sym:'O',x:-L*4.5,y:-L*0.866},{idx:12,sym:'O',x:-L*4.5,y:L*0.866},
+    ],
+    bonds:[{i:0,j:1,order:2},{i:0,j:2,order:1},{i:0,j:3,order:1},
+           {i:3,j:4,order:2},{i:3,j:5,order:1},{i:5,j:6,order:1},
+           {i:6,j:7,order:2},{i:6,j:8,order:1},{i:8,j:9,order:1},
+           {i:9,j:10,order:1},{i:10,j:11,order:2},{i:10,j:12,order:1}]
+  }),
+
   // Functional groups
   'carboxyl': L => ({
     atoms:[
