@@ -649,85 +649,62 @@ function drawBond(a1, a2, bond) {
   }
 }
 
-// Compute the two corners of a wedge at each end, snapping to adjacent bond lines.
-// srcAtom: source (narrow) atom; termAtom: destination (wide) atom
-function wedgeCorners(x1,y1,x2,y2,srcAtom,termAtom,bondId) {
-  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  const ux=dx/len, uy=dy/len;
-  const px=-uy, py=ux, w=4/state.zoom;
-
-  // default corners
-  let c1x=x2+px*w, c1y=y2+py*w; // wide end left
-  let c2x=x2-px*w, c2y=y2-py*w; // wide end right
-  let s1x=x1,      s1y=y1;       // narrow end left (default: tip)
-  let s2x=x1,      s2y=y1;       // narrow end right
-
-  // Helper: line intersection
-  // Edge from (ox,oy) in direction (ex,ey) vs bond from atom in direction (aux,auy)
-  const intersect=(ox,oy,ex,ey,atom,aux,auy)=>{
-    const denom=ex*auy-ey*aux;
-    if (Math.abs(denom)<1e-6) return null;
-    const t=((atom.x-ox)*auy-(atom.y-oy)*aux)/denom;
-    return t>0.1 && t<len*2 ? {x:ox+t*ex, y:oy+t*ey} : null;
-  };
-
-  // Snap wide end corners to adjacent bonds at termAtom
-  if (termAtom) {
-    const adj=state.bonds.filter(b=>b.id!==bondId&&(b.a===termAtom.id||b.b===termAtom.id));
-    for (const b of adj) {
-      const other=getAtom(b.a===termAtom.id?b.b:b.a);
-      if (!other) continue;
-      const adx=other.x-termAtom.x, ady=other.y-termAtom.y, al=Math.hypot(adx,ady);
-      const aux=adx/al, auy=ady/al;
-      if (aux*ux+auy*uy < -0.3) continue; // skip backward bonds
-      const cross=aux*uy-auy*ux;
-      if (cross>0.1) {
-        const p=intersect(x1,y1,c1x-x1,c1y-y1,termAtom,aux,auy);
-        if (p){c1x=p.x;c1y=p.y;}
-      } else if (cross<-0.1) {
-        const p=intersect(x1,y1,c2x-x1,c2y-y1,termAtom,aux,auy);
-        if (p){c2x=p.x;c2y=p.y;}
-      }
+// Find which perpendicular side (+1 or -1) is the narrow bond angle at srcAtom.
+// Returns the side where the adjacent bond is closest in angle to the wedge direction.
+function wedgeNarrowSide(srcAtom, bondId, ux, uy) {
+  const adj = state.bonds.filter(b => b.id !== bondId && (b.a === srcAtom.id || b.b === srcAtom.id));
+  let minAngle = Infinity, side = 1;
+  for (const b of adj) {
+    const other = getAtom(b.a === srcAtom.id ? b.b : b.a);
+    if (!other) continue;
+    const adx = other.x - srcAtom.x, ady = other.y - srcAtom.y;
+    const al = Math.hypot(adx, ady);
+    const aux = adx/al, auy = ady/al;
+    // angle between wedge direction and adjacent bond
+    const dot = ux*aux + uy*auy;
+    const angle = Math.acos(Math.min(1, Math.max(-1, dot)));
+    if (angle < minAngle) {
+      minAngle = angle;
+      // cross product: positive → adj bond is to the left (px,py side = +1)
+      side = (ux*auy - uy*aux) > 0 ? 1 : -1;
     }
   }
-
-  // Snap narrow end to adjacent bonds at srcAtom (open tip toward narrow angle)
-  if (srcAtom) {
-    const adj=state.bonds.filter(b=>b.id!==bondId&&(b.a===srcAtom.id||b.b===srcAtom.id));
-    for (const b of adj) {
-      const other=getAtom(b.a===srcAtom.id?b.b:b.a);
-      if (!other) continue;
-      const adx=other.x-srcAtom.x, ady=other.y-srcAtom.y, al=Math.hypot(adx,ady);
-      const aux=adx/al, auy=ady/al;
-      if (aux*ux+auy*uy > 0.3) continue; // skip forward bonds (toward termAtom)
-      const cross=aux*uy-auy*ux; // +left, -right of wedge dir
-      if (cross>0.1) {
-        // adj bond is on the left side; snap left narrow corner to this bond line
-        const p=intersect(x2,y2,s1x-x2,s1y-y2,srcAtom,aux,auy);
-        if (p){s1x=p.x;s1y=p.y;}
-      } else if (cross<-0.1) {
-        const p=intersect(x2,y2,s2x-x2,s2y-y2,srcAtom,aux,auy);
-        if (p){s2x=p.x;s2y=p.y;}
-      }
-    }
-  }
-
-  return {s1x,s1y,s2x,s2y,c1x,c1y,c2x,c2y,dx,dy,len};
+  return side;
 }
 
 function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
-  const {s1x,s1y,s2x,s2y,c1x,c1y,c2x,c2y,dx,dy,len}=wedgeCorners(x1,y1,x2,y2,srcAtom,termAtom,bondId);
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux;
+  const w = 7/state.zoom; // width of the narrow side offset
+
+  // Determine which side is narrow (has the adjacent bond closest to wedge dir)
+  const side = srcAtom ? wedgeNarrowSide(srcAtom, bondId, ux, uy) : 1;
+
+  // Triangle vertices:
+  // tip: source atom (start of single-bond edge)
+  // onAxis: end of the single-bond edge (x2, y2 on bond centerline)
+  // narrow: offset from onAxis toward the narrow angle side
+  const tipX = x1, tipY = y1;
+  const axX  = x2, axY  = y2;
+  const narX = x2 + px*w*side, narY = y2 + py*w*side;
+
   if (filled) {
     ctx.beginPath();
-    ctx.moveTo(s1x,s1y); ctx.lineTo(c1x,c1y);
-    ctx.lineTo(c2x,c2y); ctx.lineTo(s2x,s2y);
-    ctx.closePath(); ctx.fillStyle=col; ctx.fill();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(axX,  axY);
+    ctx.lineTo(narX, narY);
+    ctx.closePath();
+    ctx.fillStyle = col; ctx.fill();
   } else {
-    const n=Math.max(3,Math.round(len/(7/state.zoom)));
-    ctx.lineWidth=1.2/state.zoom;
-    for (let i=0;i<=n;i++) {
-      const t=i/n;
-      line(s1x+(c1x-s1x)*t, s1y+(c1y-s1y)*t, s2x+(c2x-s2x)*t, s2y+(c2y-s2y)*t);
+    // Dash bond: hatch lines from tip→axX interpolated toward tip→narX
+    const n = Math.max(3, Math.round(len / (7/state.zoom)));
+    ctx.lineWidth = 1.2/state.zoom;
+    for (let i = 0; i <= n; i++) {
+      const t = i/n;
+      const lx = tipX + (axX-tipX)*t, ly = tipY + (axY-tipY)*t;
+      const rx = tipX + (narX-tipX)*t, ry = tipY + (narY-tipY)*t;
+      line(lx, ly, rx, ry);
     }
   }
 }
