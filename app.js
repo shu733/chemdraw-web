@@ -16,7 +16,7 @@ const BL = 44; // default bond length (world units)
 
 // ─── State ────────────────────────────────────────────────────
 let state = {
-  atoms: [],   // {id, x, y, symbol, charge}
+  atoms: [],   // {id, x, y, symbol, charge, radical}  radical: 0|1|2
   bonds: [],   // {id, a, b, order, stereo}  stereo: ''|'wedge'|'dash'
   nextId: 1,
   tool: 'draw',
@@ -27,10 +27,48 @@ let state = {
   history: [],
   redoStack: [],
   bwMode: false,
+  showImplicitH: false,
   zoom: 1,
   panX: 0,
   panY: 0,
 };
+
+// ─── Implicit H helpers ───────────────────────────────────────
+const MAX_VALENCE = {C:4,N:3,O:2,S:2,P:3,F:1,Cl:1,Br:1,I:1,B:3,Si:4,Se:2,H:1};
+const SUB_DIGITS  = '₀₁₂₃₄₅₆₇₈₉';
+function toSub(n) { return n<2?'':[...String(n)].map(d=>SUB_DIGITS[+d]).join(''); }
+
+function getImplicitH(atom) {
+  const v = MAX_VALENCE[atom.symbol];
+  if (v === undefined) return 0;
+  const bondSum = state.bonds
+    .filter(b => b.a===atom.id || b.b===atom.id)
+    .reduce((s,b) => s+(b.order||1), 0);
+  return Math.max(0, v - bondSum);
+}
+
+// Direction H label is placed: opposite the average bond vector
+function getHDir(atom) {
+  const bonds = state.bonds.filter(b=>b.a===atom.id||b.b===atom.id);
+  if (!bonds.length) return 'right';
+  let sx=0, sy=0;
+  bonds.forEach(b=>{
+    const o=getAtom(b.a===atom.id?b.b:b.a);
+    if(o){sx+=o.x-atom.x;sy+=o.y-atom.y;}
+  });
+  // H goes OPPOSITE the average bond direction
+  if (Math.abs(sx)>=Math.abs(sy)) return sx>0?'left':'right';
+  return sy>0?'up':'down';
+}
+
+// Full label text including implicit H (e.g. "CH₃", "NH₂", "OH")
+function getFullLabel(atom) {
+  const nH = state.showImplicitH ? getImplicitH(atom) : 0;
+  if (nH===0) return atom.symbol;
+  const h = 'H' + toSub(nH);
+  const dir = getHDir(atom);
+  return dir==='left' ? h+atom.symbol : atom.symbol+h;
+}
 
 let drag = null;
 let hoveredAtom = null;
@@ -133,6 +171,12 @@ function toggleBW() {
   render();
 }
 
+function toggleImplicitH() {
+  state.showImplicitH = !state.showImplicitH;
+  document.getElementById('btn-implH').classList.toggle('active', state.showImplicitH);
+  render();
+}
+
 function zoomIn()  { applyZoom(1.2, canvas.width/2, canvas.height/2); }
 function zoomOut() { applyZoom(0.83, canvas.width/2, canvas.height/2); }
 function zoomFit() {
@@ -228,6 +272,12 @@ function onMouseDown(e) {
   }
   if (e.button!==0) return;
   const {x:wx,y:wy}=s2w(sx,sy);
+
+  if (state.tool==='radical') {
+    const a=findAtomAt(wx,wy);
+    if (a) { saveHistory(); a.radical=((a.radical||0)+1)%3; render(); }
+    return;
+  }
 
   if (state.tool==='erase') {
     saveHistory();
@@ -492,14 +542,16 @@ function render() {
 
 function showLabel(a) {
   if (a.symbol!=='C') return true;
-  return getBondCount(a.id)===0;
+  if (getBondCount(a.id)===0) return true;
+  return state.showImplicitH && getImplicitH(a)>0;
 }
 
 function labelHalfWidth(a) {
   if (!showLabel(a)) return 0;
-  const fs = a.symbol.length>1 ? 12 : 15;
+  const label = getFullLabel(a);
+  const fs = label.length>3 ? 11 : label.length>2 ? 12 : label.length>1 ? 13 : 15;
   ctx.font = `bold ${fs/state.zoom}px sans-serif`;
-  return ctx.measureText(a.symbol).width/2 + 4/state.zoom;
+  return ctx.measureText(label).width/2 + 4/state.zoom;
 }
 
 function drawBond(a1, a2, bond) {
@@ -567,9 +619,11 @@ function drawAtom(a) {
   const sc=1/state.zoom;
 
   if (sl) {
-    const fs=a.symbol.length>1?12*sc:15*sc;
+    const label=getFullLabel(a);
+    const fsBase=label.length>3?11:label.length>2?12:label.length>1?13:15;
+    const fs=fsBase*sc;
     ctx.font=`bold ${fs}px sans-serif`;
-    const tw=ctx.measureText(a.symbol).width;
+    const tw=ctx.measureText(label).width;
     const pad=4*sc, rw=tw/2+pad, rh=fs/2+pad;
 
     ctx.fillStyle=hov?'#e3f2fd':CANVAS_BG;
@@ -582,9 +636,9 @@ function drawAtom(a) {
 
     ctx.fillStyle=state.bwMode?'#000':(ATOM_COLORS[a.symbol]||ATOM_COLORS.default);
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(a.symbol, a.x, a.y);
+    ctx.fillText(label, a.x, a.y);
 
-    // charge
+    // charge superscript
     if (a.charge) {
       const cs=a.charge===1?'+':a.charge===-1?'−':a.charge>0?`${a.charge}+`:`${Math.abs(a.charge)}−`;
       ctx.font=`bold ${9*sc}px sans-serif`;
@@ -592,10 +646,20 @@ function drawAtom(a) {
       ctx.textAlign='left'; ctx.textBaseline='top';
       ctx.fillText(cs, a.x+rw, a.y-rh);
     }
+
+    // radical dots (top-right)
+    if (a.radical) {
+      const r=2.5*sc, gap=2*sc;
+      ctx.fillStyle=state.bwMode?'#000':'#333';
+      for (let i=0;i<a.radical;i++) {
+        ctx.beginPath();
+        ctx.arc(a.x+rw+gap+r+i*(r*2.8), a.y-rh/2, r, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
   } else {
     // skeletal C: no label, just interaction indicator
-    const bc=getBondCount(a.id);
-    if (bc===0) {
+    if (getBondCount(a.id)===0) {
       const fs=14*sc;
       ctx.font=`bold ${fs}px sans-serif`;
       const tw=ctx.measureText('C').width, pad=3*sc, rw=tw/2+pad, rh=fs/2+pad;
@@ -603,6 +667,16 @@ function drawAtom(a) {
       ctx.fillStyle=state.bwMode?'#000':'#333';
       ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText('C',a.x,a.y);
+    }
+    // radical dots on skeletal C (no label box) — dots near vertex
+    if (a.radical) {
+      const r=2.5*sc;
+      ctx.fillStyle=state.bwMode?'#000':'#333';
+      for (let i=0;i<a.radical;i++) {
+        ctx.beginPath();
+        ctx.arc(a.x+6*sc+i*r*3, a.y-6*sc, r, 0, Math.PI*2);
+        ctx.fill();
+      }
     }
     if (hov) {
       ctx.beginPath(); ctx.arc(a.x,a.y,7*sc,0,Math.PI*2);

@@ -123,6 +123,7 @@
   </div>
   <div class="tg">
     <button class="tb" id="btn-bw" onclick="toggleBW()">白黒 (B)</button>
+    <button class="tb" id="btn-implH" onclick="toggleImplicitH()">H表示</button>
   </div>
   <div class="tg">
     <label class="tb" style="cursor:pointer;">
@@ -160,6 +161,11 @@
     <div class="charge-btns">
       <button class="chg-btn" title="右クリックで電荷を変更できます">+</button>
       <button class="chg-btn">−</button>
+    </div>
+
+    <h3>不対電子</h3>
+    <div class="btn-col">
+      <button class="bond-btn" id="tool-radical" data-tool="radical" onclick="setTool('radical')">• ラジカル (クリックで付与)</button>
     </div>
 
     <h3>環ツール</h3>
