@@ -573,15 +573,15 @@ function labelHalfWidth(a) {
   const label = getFullLabel(a);
   const fs = label.length>3 ? 11 : label.length>2 ? 12 : label.length>1 ? 13 : 15;
   ctx.font = `bold ${fs/state.zoom}px sans-serif`;
-  return ctx.measureText(label).width/2 + 4/state.zoom;
+  return ctx.measureText(label).width/2 + 1/state.zoom;
 }
 
 function drawBond(a1, a2, bond) {
   const dx=a2.x-a1.x, dy=a2.y-a1.y, len=Math.hypot(dx,dy);
   if (len<1) return;
   const ux=dx/len, uy=dy/len, px=-uy, py=ux;
-  const r1=labelHalfWidth(a1)+1/state.zoom;
-  const r2=labelHalfWidth(a2)+1/state.zoom;
+  const r1=labelHalfWidth(a1);
+  const r2=labelHalfWidth(a2);
   const x1=a1.x+ux*r1, y1=a1.y+uy*r1;
   const x2=a2.x-ux*r2, y2=a2.y-uy*r2;
   const segLen=Math.hypot(x2-x1,y2-y1); if(segLen<2) return;
