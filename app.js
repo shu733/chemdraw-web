@@ -651,56 +651,39 @@ function drawBond(a1, a2, bond) {
 
 function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  const ux=dx/len, uy=dy/len;   // wedge unit direction
-  const px=-uy, py=ux;           // right perpendicular (canvas y-down)
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux; // perpendicular
 
-  // Default: narrow corner offset to the right of axis at the wide end
-  const defW = BL * 0.18;
-  let narX = x2 + px*defW, narY = y2 + py*defW;
+  // The wedge is a triangle: tip(x1,y1) → wide-end(x2,y2) → corner(narX,narY)
+  // The short side corner→tip lies ON the adjacent bond from srcAtom.
+  // corner = srcAtom + t * (adj bond direction), with t chosen so the width looks right.
+  let narX = x2 + px*(BL*0.2), narY = y2 + py*(BL*0.2); // fallback
 
   if (srcAtom) {
     const adj = state.bonds.filter(b => b.id!==bondId && (b.a===srcAtom.id||b.b===srcAtom.id));
-    // Find adjacent bond closest to the wedge direction (but not nearly co-linear with it).
-    // When such a bond exists, the slant edge lies on that bond's line → never crosses it.
-    let bestDot = -Infinity, bestAux = 0, bestAuy = 0;
+    // Pick the adjacent bond most perpendicular to the wedge (largest |cross|).
+    // Its direction becomes the short side of the triangle, placing the corner on that bond.
+    let bestCross = 0, bestAux = 0, bestAuy = 0;
     for (const b of adj) {
       const other = getAtom(b.a===srcAtom.id ? b.b : b.a);
       if (!other) continue;
       const adx=other.x-srcAtom.x, ady=other.y-srcAtom.y, al=Math.hypot(adx,ady);
       const aux=adx/al, auy=ady/al;
-      const dot = ux*aux + uy*auy;
-      if (dot > 0.94) continue; // skip bonds nearly parallel to wedge
-      if (dot > bestDot) { bestDot=dot; bestAux=aux; bestAuy=auy; }
+      const cross = Math.abs(ux*auy - uy*aux); // |sin| of angle between adj and wedge
+      if (cross > bestCross) { bestCross=cross; bestAux=aux; bestAuy=auy; }
     }
 
-    if (bestDot > -Infinity) {
-      // The slant edge goes from tip along this adjacent bond's line (extended beyond tip).
-      // Slant direction: use the adj direction if it points toward wide end, else its opposite.
-      let sux = bestAux, suy = bestAuy;
-      if (sux*ux + suy*uy < 0) { sux=-sux; suy=-suy; } // ensure forward component
-
-      // Intersection of slant ray from tip with the perpendicular plane at x2,y2:
-      //   tip + t*(sux,suy)  where dot(tip+t*s - (x2,y2), (ux,uy)) = 0
-      //   t = len / (sux*ux + suy*uy)
-      const sdot = sux*ux + suy*uy;
-      if (sdot > 0.08) { // slant has meaningful forward component
-        const tRaw = len / sdot;
-        const cX = x1 + sux*tRaw, cY = y1 + suy*tRaw;
-        // Cap perpendicular distance to avoid extreme widths
-        const perpDist = (cX-x2)*px + (cY-y2)*py;
-        const maxW = BL * 0.55;
-        if (Math.abs(perpDist) <= maxW) {
-          narX = cX; narY = cY;
-        } else {
-          // Scale t so that perp distance = maxW (preserves direction along adj bond)
-          const tCap = tRaw * maxW / Math.abs(perpDist);
-          narX = x1 + sux*tCap; narY = y1 + suy*tCap;
-        }
-      }
+    if (bestCross > 0.05) {
+      // t = desired perpendicular width / |sin(angle)| = targetWidth / bestCross
+      const targetWidth = BL * 0.22;
+      const t = Math.min(targetWidth / bestCross, BL * 0.65);
+      narX = srcAtom.x + bestAux * t;
+      narY = srcAtom.y + bestAuy * t;
     }
   }
 
-  // Triangle: tip(x1,y1) → axis-end(x2,y2) → narrow-corner(narX,narY)
+  // Triangle: tip → wide-end → corner
+  // Short side (corner→tip) lies along the adjacent bond
   if (filled) {
     ctx.beginPath();
     ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(narX,narY);
