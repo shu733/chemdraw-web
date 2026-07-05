@@ -126,7 +126,7 @@ function buildElementGrid() {
 // ─── Tool Management ──────────────────────────────────────────
 function setTool(t) {
   state.tool = t;
-  document.querySelectorAll('.tool-btn[data-tool]').forEach(b =>
+  document.querySelectorAll('[data-tool]').forEach(b =>
     b.classList.toggle('active', b.dataset.tool === t));
   canvas.style.cursor = getCursor();
   lassoPoints = null;
@@ -141,13 +141,25 @@ function getCursor() {
 }
 
 function selectElement(el) {
+  // If atoms are selected, replace their element
+  if (state.selected.size > 0) {
+    saveHistory();
+    state.selected.forEach(id => {
+      const a = getAtom(id);
+      if (a) a.symbol = el;
+    });
+    render();
+    return;
+  }
+  // Set drawing element; in select/erase/radical mode, also switch to draw
   state.selectedElement = el;
   document.querySelectorAll('.elem-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('elem-'+el);
   if (btn) btn.classList.add('active');
   const ci = document.getElementById('elem-custom');
   if (ci) ci.value = el;
-  if (!['draw','ring3','ring4','ring5','ring6','ring7','ring8'].includes(state.tool)) setTool('draw');
+  const drawModes = ['draw','ring3','ring4','ring5','ring6','ring7','ring8','select'];
+  if (!drawModes.includes(state.tool)) setTool('draw');
 }
 
 function setCustomElement() {
