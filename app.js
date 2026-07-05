@@ -158,7 +158,7 @@ function selectElement(el) {
   if (btn) btn.classList.add('active');
   const ci = document.getElementById('elem-custom');
   if (ci) ci.value = el;
-  const drawModes = ['draw','ring3','ring4','ring5','ring6','ring7','ring8','select'];
+  const drawModes = ['draw','ring3','ring4','ring5','ring6','ring6a','ring7','ring8','select'];
   if (!drawModes.includes(state.tool)) setTool('draw');
 }
 
@@ -315,9 +315,10 @@ function onMouseDown(e) {
   }
 
   if (state.tool.startsWith('ring')) {
-    const n=parseInt(state.tool.slice(4));
+    const aromatic = state.tool.endsWith('a');
+    const n = parseInt(state.tool.replace('ring','').replace('a',''));
     saveHistory();
-    insertRingAt(wx, wy, n);
+    insertRingAt(wx, wy, n, aromatic);
     return;
   }
 
@@ -466,19 +467,15 @@ function removeAtom(id) {
 function removeBond(id) { state.bonds=state.bonds.filter(b=>b.id!==id); }
 
 // ─── Ring tool placement ──────────────────────────────────────
-function insertRingAt(wx, wy, n) {
-  const R = BL * (n===3?0.577:n===4?0.707:n===5?0.851:n===6?1.0:n===7?1.152:1.305);
+function insertRingAt(wx, wy, n, aromatic) {
+  const sz = n===3?0.577:n===4?0.707:n===5?0.851:n===6?1.0:n===7?1.152:1.305;
+  const R = BL * sz;
   const sa = n%2===0 ? -Math.PI/n : -Math.PI/2;
-  // Check if we're near an existing atom to fuse
-  const nearAtom = findAtomAt(wx, wy, BL*0.6);
-  const nearBond = !nearAtom ? findBondAt(wx, wy, BL*0.4) : null;
 
   const ids = [];
-  const isAro = (n===5||n===6);
   for (let i=0; i<n; i++) {
     const angle = sa + (i/n)*2*Math.PI;
     const x = wx+Math.cos(angle)*R, y = wy+Math.sin(angle)*R;
-    // check if existing atom nearby
     const ex = findAtomAt(x, y, BL*0.4);
     if (ex) { ids.push(ex.id); }
     else {
@@ -490,7 +487,7 @@ function insertRingAt(wx, wy, n) {
   for (let i=0; i<n; i++) {
     const a=ids[i], b=ids[(i+1)%n];
     if (!getBondByAtoms(a,b)) {
-      const order = (n===6 && i%2===0) ? 2 : 1;
+      const order = aromatic ? (i%2===0 ? 2 : 1) : 1;
       state.bonds.push({id:state.nextId++,a,b,order,stereo:''});
     }
   }
@@ -576,6 +573,36 @@ function labelHalfWidth(a) {
   return ctx.measureText(label).width/2 + 1/state.zoom;
 }
 
+// Returns +1/-1 indicating which perpendicular side (px,py) the ring interior is on,
+// or 0 if the bond is not in a ring.
+function getRingInsideSide(a1, a2, px, py) {
+  // BFS from a1 to a2 avoiding the direct a1-a2 bond, max ring size 10
+  const visited = new Set([a1.id]);
+  const queue = [[a1.id, [a1]]];
+  while (queue.length) {
+    const [cur, path] = queue.shift();
+    if (path.length > 9) continue;
+    const neighbors = state.bonds
+      .filter(b => (b.a===cur||b.b===cur) && !(b.a===a1.id&&b.b===a2.id) && !(b.a===a2.id&&b.b===a1.id))
+      .map(b => b.a===cur ? b.b : b.a);
+    for (const nb of neighbors) {
+      if (nb===a2.id) {
+        // compute centroid of ring path atoms
+        const cx = path.reduce((s,a)=>s+a.x,0)/path.length;
+        const cy = path.reduce((s,a)=>s+a.y,0)/path.length;
+        const dot = (cx-a1.x)*px + (cy-a1.y)*py;
+        return dot > 0 ? 1 : -1;
+      }
+      if (!visited.has(nb)) {
+        visited.add(nb);
+        const atom = getAtom(nb);
+        if (atom) queue.push([nb, [...path, atom]]);
+      }
+    }
+  }
+  return 0;
+}
+
 function drawBond(a1, a2, bond) {
   const dx=a2.x-a1.x, dy=a2.y-a1.y, len=Math.hypot(dx,dy);
   if (len<1) return;
@@ -602,9 +629,18 @@ function drawBond(a1, a2, bond) {
   } else if (ord===1) {
     line(x1,y1,x2,y2);
   } else if (ord===2) {
-    const off=2.5/state.zoom;
-    line(x1+px*off,y1+py*off,x2+px*off,y2+py*off);
-    line(x1-px*off,y1-py*off,x2-px*off,y2-py*off);
+    const side = getRingInsideSide(a1, a2, px, py);
+    if (side !== 0) {
+      // Ring bond: main line full length, inner line shorter and offset inward
+      const off=3.5/state.zoom, inset=3/state.zoom;
+      line(x1,y1,x2,y2);
+      line(x1+px*off*side+ux*inset, y1+py*off*side+uy*inset,
+           x2+px*off*side-ux*inset, y2+py*off*side-uy*inset);
+    } else {
+      const off=2.5/state.zoom;
+      line(x1+px*off,y1+py*off,x2+px*off,y2+py*off);
+      line(x1-px*off,y1-py*off,x2-px*off,y2-py*off);
+    }
   } else if (ord===3) {
     const off=3.5/state.zoom;
     line(x1,y1,x2,y2);
