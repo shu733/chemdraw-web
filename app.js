@@ -445,6 +445,16 @@ function onKeyDown(e) {
     }
   }
   if (e.key==='Escape') { state.selected.clear(); lassoPoints=null; render(); }
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    const step = e.shiftKey ? 2 : 10;
+    const dx = e.key==='ArrowLeft'?-step : e.key==='ArrowRight'?step : 0;
+    const dy = e.key==='ArrowUp'  ?-step : e.key==='ArrowDown' ?step : 0;
+    const targets = state.selected.size>0
+      ? state.atoms.filter(a=>state.selected.has(a.id))
+      : state.atoms;
+    if (targets.length) { saveHistory(); targets.forEach(a=>{a.x+=dx/state.zoom; a.y+=dy/state.zoom;}); render(); }
+  }
   if (e.key==='a'&&(e.ctrlKey||e.metaKey)) { e.preventDefault(); state.atoms.forEach(a=>state.selected.add(a.id)); render(); }
 }
 
@@ -586,9 +596,9 @@ function drawBond(a1, a2, bond) {
   const ord=bond.order||1;
 
   if (st==='wedge') {
-    drawWedge(x1,y1,x2,y2,true,col);
+    drawWedge(a1.x,a1.y,x2,y2,true,col);
   } else if (st==='dash') {
-    drawWedge(x1,y1,x2,y2,false,col);
+    drawWedge(a1.x,a1.y,x2,y2,false,col);
   } else if (ord===1) {
     line(x1,y1,x2,y2);
   } else if (ord===2) {
