@@ -652,50 +652,72 @@ function drawBond(a1, a2, bond) {
 function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
   const ux=dx/len, uy=dy/len;
-  const px=-uy, py=ux; // perpendicular
+  const px=-uy, py=ux; // perpendicular (right of wedge direction)
 
-  // The wedge is a triangle: tip(x1,y1) → wide-end(x2,y2) → corner(narX,narY)
-  // The short side corner→tip lies ON the adjacent bond from srcAtom.
-  // corner = srcAtom + t * (adj bond direction), with t chosen so the width looks right.
+  if (!filled) {
+    // Dash bond: parallel lines growing in width from tip to wide end
+    const halfW = BL * 0.13;
+    const n = Math.max(4, Math.round(len * state.zoom / 7));
+    ctx.lineWidth = 1.2/state.zoom;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const w = halfW * t;
+      const mx = x1 + dx*t, my = y1 + dy*t;
+      line(mx - px*w, my - py*w, mx + px*w, my + py*w);
+    }
+    return;
+  }
+
+  // Filled wedge: asymmetric triangle
+  //   tip(x1,y1)  ← narrow end, at source atom
+  //   axis-end(x2,y2) ← on bond axis at wide end
+  //   corner(narX,narY) ← offset at wide end; short side = (x2,y2)→corner
+  //
+  // The slant edge tip→corner follows the nearest adjacent bond from srcAtom
+  // (its direction extended, so the edge lies on that bond's line → no crossing).
   let narX = x2 + px*(BL*0.2), narY = y2 + py*(BL*0.2); // fallback
 
   if (srcAtom) {
     const adj = state.bonds.filter(b => b.id!==bondId && (b.a===srcAtom.id||b.b===srcAtom.id));
-    // Pick the adjacent bond most perpendicular to the wedge (largest |cross|).
-    // Its direction becomes the short side of the triangle, placing the corner on that bond.
-    let bestCross = 0, bestAux = 0, bestAuy = 0;
+    let bestDot = -2, bestAux = 0, bestAuy = 0;
     for (const b of adj) {
       const other = getAtom(b.a===srcAtom.id ? b.b : b.a);
       if (!other) continue;
       const adx=other.x-srcAtom.x, ady=other.y-srcAtom.y, al=Math.hypot(adx,ady);
       const aux=adx/al, auy=ady/al;
-      const cross = Math.abs(ux*auy - uy*aux); // |sin| of angle between adj and wedge
-      if (cross > bestCross) { bestCross=cross; bestAux=aux; bestAuy=auy; }
+      const dot = ux*aux + uy*auy;
+      if (dot > 0.93) continue; // skip bonds nearly co-linear with wedge
+      if (dot > bestDot) { bestDot=dot; bestAux=aux; bestAuy=auy; }
     }
 
-    if (bestCross > 0.05) {
-      // t = desired perpendicular width / |sin(angle)| = targetWidth / bestCross
-      const targetWidth = BL * 0.22;
-      const t = Math.min(targetWidth / bestCross, BL * 0.65);
-      narX = srcAtom.x + bestAux * t;
-      narY = srcAtom.y + bestAuy * t;
+    if (bestDot > -2) {
+      // Slant direction from tip toward wide end (ensure forward component)
+      let sux = bestAux, suy = bestAuy;
+      if (sux*ux + suy*uy < 0) { sux=-sux; suy=-suy; }
+      const sdot = sux*ux + suy*uy;
+      if (sdot > 0.06) {
+        // Intersection of slant ray (from srcAtom in dir sux,suy)
+        // with perpendicular plane at (x2,y2):
+        //   srcAtom + t*(sux,suy) · (ux,uy) = (x2,y2) · (ux,uy)
+        const t = ((x2-srcAtom.x)*ux + (y2-srcAtom.y)*uy) / sdot;
+        const cX = srcAtom.x + sux*t, cY = srcAtom.y + suy*t;
+        // Cap width to keep the wedge from becoming too wide
+        const perpDist = (cX-x2)*px + (cY-y2)*py;
+        const maxW = BL * 0.5;
+        if (Math.abs(perpDist) <= maxW) {
+          narX = cX; narY = cY;
+        } else {
+          narX = x2 + px*(Math.sign(perpDist)*maxW);
+          narY = y2 + py*(Math.sign(perpDist)*maxW);
+        }
+      }
     }
   }
 
-  // Triangle: tip → wide-end → corner
-  // Short side (corner→tip) lies along the adjacent bond
-  if (filled) {
-    ctx.beginPath();
-    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(narX,narY);
-    ctx.closePath(); ctx.fillStyle=col; ctx.fill();
-  } else {
-    const n = Math.max(3, Math.round(len/(7/state.zoom)));
-    ctx.lineWidth = 1.2/state.zoom;
-    for (let i=0; i<=n; i++) {
-      const t=i/n;
-      line(x1+(x2-x1)*t, y1+(y2-y1)*t, x1+(narX-x1)*t, y1+(narY-y1)*t);
-    }
-  }
+  // Triangle: tip → axis-end → corner (short side: axis-end→corner, at the wide/dest end)
+  ctx.beginPath();
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(narX,narY);
+  ctx.closePath(); ctx.fillStyle=col; ctx.fill();
 }
 
 function line(x1,y1,x2,y2) {
