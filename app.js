@@ -622,11 +622,7 @@ function drawBond(a1, a2, bond) {
   const st=bond.stereo||'';
   const ord=bond.order||1;
 
-  if (st==='wedge') {
-    drawWedge(a1.x,a1.y,x2,y2,true,col,a1,a2,bond.id);
-  } else if (st==='dash') {
-    drawWedge(a1.x,a1.y,x2,y2,false,col,a1,a2,bond.id);
-  } else if (ord===1) {
+  if (ord===1 || st==='wedge' || st==='dash') {
     line(x1,y1,x2,y2);
   } else if (ord===2) {
     const side = getRingInsideSide(a1, a2, px, py);
@@ -649,39 +645,6 @@ function drawBond(a1, a2, bond) {
   }
 }
 
-function drawWedge(x1,y1,x2,y2,filled,col) {
-  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  if (len < 1) return;
-  // perpendicular unit vector
-  const px=-dy/len, py=dx/len;
-  // half-width at the wide end: ~12% of bond length in world units
-  const hw = len * 0.12;
-
-  if (filled) {
-    // solid wedge: isoceles triangle, tip at src, base at dest
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2 + px*hw, y2 + py*hw);
-    ctx.lineTo(x2 - px*hw, y2 - py*hw);
-    ctx.closePath();
-    ctx.fillStyle = col;
-    ctx.fill();
-  } else {
-    // dashed wedge: evenly-spaced lines that grow from 0 at tip to hw at dest
-    const n = Math.max(4, Math.round(len / (BL * 0.15)));
-    ctx.lineWidth = 1.5/state.zoom;
-    ctx.strokeStyle = col;
-    for (let i = 1; i <= n; i++) {
-      const t = i / n;
-      const w = hw * t;
-      const mx = x1 + dx*t, my = y1 + dy*t;
-      ctx.beginPath();
-      ctx.moveTo(mx - px*w, my - py*w);
-      ctx.lineTo(mx + px*w, my + py*w);
-      ctx.stroke();
-    }
-  }
-}
 
 function line(x1,y1,x2,y2) {
   ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
