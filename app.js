@@ -649,77 +649,24 @@ function drawBond(a1, a2, bond) {
   }
 }
 
-function wedgeCorners(x1,y1,x2,y2,srcAtom,termAtom,bondId) {
+function drawWedge(x1,y1,x2,y2,filled,col) {
   const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
-  const ux=dx/len, uy=dy/len;
-  const px=-uy, py=ux, w=4/state.zoom;
-
-  let c1x=x2+px*w, c1y=y2+py*w;
-  let c2x=x2-px*w, c2y=y2-py*w;
-  let s1x=x1,      s1y=y1;
-  let s2x=x1,      s2y=y1;
-
-  const intersect=(ox,oy,ex,ey,atom,aux,auy)=>{
-    const denom=ex*auy-ey*aux;
-    if (Math.abs(denom)<1e-6) return null;
-    const t=((atom.x-ox)*auy-(atom.y-oy)*aux)/denom;
-    return t>0.1 && t<len*2 ? {x:ox+t*ex, y:oy+t*ey} : null;
-  };
-
-  if (termAtom) {
-    const adj=state.bonds.filter(b=>b.id!==bondId&&(b.a===termAtom.id||b.b===termAtom.id));
-    for (const b of adj) {
-      const other=getAtom(b.a===termAtom.id?b.b:b.a);
-      if (!other) continue;
-      const adx=other.x-termAtom.x, ady=other.y-termAtom.y, al=Math.hypot(adx,ady);
-      const aux=adx/al, auy=ady/al;
-      if (aux*ux+auy*uy < -0.3) continue;
-      const cross=aux*uy-auy*ux;
-      if (cross>0.1) {
-        const p=intersect(x1,y1,c1x-x1,c1y-y1,termAtom,aux,auy);
-        if (p){c1x=p.x;c1y=p.y;}
-      } else if (cross<-0.1) {
-        const p=intersect(x1,y1,c2x-x1,c2y-y1,termAtom,aux,auy);
-        if (p){c2x=p.x;c2y=p.y;}
-      }
-    }
-  }
-
-  if (srcAtom) {
-    const adj=state.bonds.filter(b=>b.id!==bondId&&(b.a===srcAtom.id||b.b===srcAtom.id));
-    for (const b of adj) {
-      const other=getAtom(b.a===srcAtom.id?b.b:b.a);
-      if (!other) continue;
-      const adx=other.x-srcAtom.x, ady=other.y-srcAtom.y, al=Math.hypot(adx,ady);
-      const aux=adx/al, auy=ady/al;
-      if (aux*ux+auy*uy > 0.3) continue;
-      const cross=aux*uy-auy*ux;
-      if (cross>0.1) {
-        const p=intersect(x2,y2,s1x-x2,s1y-y2,srcAtom,aux,auy);
-        if (p){s1x=p.x;s1y=p.y;}
-      } else if (cross<-0.1) {
-        const p=intersect(x2,y2,s2x-x2,s2y-y2,srcAtom,aux,auy);
-        if (p){s2x=p.x;s2y=p.y;}
-      }
-    }
-  }
-
-  return {s1x,s1y,s2x,s2y,c1x,c1y,c2x,c2y,dx,dy,len};
-}
-
-function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
-  const {s1x,s1y,s2x,s2y,c1x,c1y,c2x,c2y,dx,dy,len}=wedgeCorners(x1,y1,x2,y2,srcAtom,termAtom,bondId);
+  const px=-dy/len, py=dx/len;
+  const w = 4/state.zoom;
   if (filled) {
     ctx.beginPath();
-    ctx.moveTo(s1x,s1y); ctx.lineTo(c1x,c1y);
-    ctx.lineTo(c2x,c2y); ctx.lineTo(s2x,s2y);
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2+px*w, y2+py*w);
+    ctx.lineTo(x2-px*w, y2-py*w);
     ctx.closePath(); ctx.fillStyle=col; ctx.fill();
   } else {
     const n=Math.max(3,Math.round(len/(7/state.zoom)));
     ctx.lineWidth=1.2/state.zoom;
     for (let i=0;i<=n;i++) {
       const t=i/n;
-      line(s1x+(c1x-s1x)*t, s1y+(c1y-s1y)*t, s2x+(c2x-s2x)*t, s2y+(c2y-s2y)*t);
+      const hw=w*t;
+      const mx=x1+dx*t, my=y1+dy*t;
+      line(mx-px*hw, my-py*hw, mx+px*hw, my+py*hw);
     }
   }
 }
