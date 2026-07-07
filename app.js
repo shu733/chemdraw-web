@@ -654,9 +654,10 @@ function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
   const ux=dx/len, uy=dy/len;
   const px=-uy, py=ux; // perpendicular (right of wedge direction)
 
+  const halfW = BL * 0.11; // half-width at the wide end
+
   if (!filled) {
-    // Dash bond: parallel lines growing in width from tip to wide end
-    const halfW = BL * 0.13;
+    // Dash bond: symmetric parallel lines growing from tip to wide end
     const n = Math.max(4, Math.round(len * state.zoom / 7));
     ctx.lineWidth = 1.2/state.zoom;
     for (let i = 0; i <= n; i++) {
@@ -668,55 +669,12 @@ function drawWedge(x1,y1,x2,y2,filled,col,srcAtom,termAtom,bondId) {
     return;
   }
 
-  // Filled wedge: asymmetric triangle
-  //   tip(x1,y1)  ← narrow end, at source atom
-  //   axis-end(x2,y2) ← on bond axis at wide end
-  //   corner(narX,narY) ← offset at wide end; short side = (x2,y2)→corner
-  //
-  // The slant edge tip→corner follows the nearest adjacent bond from srcAtom
-  // (its direction extended, so the edge lies on that bond's line → no crossing).
-  let narX = x2 + px*(BL*0.2), narY = y2 + py*(BL*0.2); // fallback
-
-  if (srcAtom) {
-    const adj = state.bonds.filter(b => b.id!==bondId && (b.a===srcAtom.id||b.b===srcAtom.id));
-    let bestDot = -2, bestAux = 0, bestAuy = 0;
-    for (const b of adj) {
-      const other = getAtom(b.a===srcAtom.id ? b.b : b.a);
-      if (!other) continue;
-      const adx=other.x-srcAtom.x, ady=other.y-srcAtom.y, al=Math.hypot(adx,ady);
-      const aux=adx/al, auy=ady/al;
-      const dot = ux*aux + uy*auy;
-      if (dot > 0.93) continue; // skip bonds nearly co-linear with wedge
-      if (dot > bestDot) { bestDot=dot; bestAux=aux; bestAuy=auy; }
-    }
-
-    if (bestDot > -2) {
-      // Slant direction from tip toward wide end (ensure forward component)
-      let sux = bestAux, suy = bestAuy;
-      if (sux*ux + suy*uy < 0) { sux=-sux; suy=-suy; }
-      const sdot = sux*ux + suy*uy;
-      if (sdot > 0.06) {
-        // Intersection of slant ray (from srcAtom in dir sux,suy)
-        // with perpendicular plane at (x2,y2):
-        //   srcAtom + t*(sux,suy) · (ux,uy) = (x2,y2) · (ux,uy)
-        const t = ((x2-srcAtom.x)*ux + (y2-srcAtom.y)*uy) / sdot;
-        const cX = srcAtom.x + sux*t, cY = srcAtom.y + suy*t;
-        // Cap width to keep the wedge from becoming too wide
-        const perpDist = (cX-x2)*px + (cY-y2)*py;
-        const maxW = BL * 0.5;
-        if (Math.abs(perpDist) <= maxW) {
-          narX = cX; narY = cY;
-        } else {
-          narX = x2 + px*(Math.sign(perpDist)*maxW);
-          narY = y2 + py*(Math.sign(perpDist)*maxW);
-        }
-      }
-    }
-  }
-
-  // Triangle: tip → axis-end → corner (short side: axis-end→corner, at the wide/dest end)
+  // Filled wedge: symmetric isoceles triangle, bond axis in center
+  //   tip at (x1,y1), two base corners symmetric about axis at (x2,y2)
   ctx.beginPath();
-  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(narX,narY);
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2 + px*halfW, y2 + py*halfW);
+  ctx.lineTo(x2 - px*halfW, y2 - py*halfW);
   ctx.closePath(); ctx.fillStyle=col; ctx.fill();
 }
 
